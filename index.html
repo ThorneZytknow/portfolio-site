@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nicolas — Portfólio Desenvolvedor Full‑Stack</title>
+    <meta name="description" content="Nicolas — Desenvolvedor full‑stack em São Paulo. Crio produtos web modernos: APIs, front‑end, integrações e DevOps. Projetos, stack e artigos." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Display: Fraunces (expressive serif), Accent: Permanent Marker (handwritten), Body: Space Grotesk (modern sans) -->
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800;9..144,900&family=Permanent+Marker&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Ir para o conteúdo</a>
+
+    <header class="site-header" role="banner">
+      <div class="nav-wrap">
+        <a href="#hero" class="logo" aria-label="Início — Nicolas">Nicolas</a>
+        <nav class="site-nav" aria-label="Navegação principal" aria-expanded="false">
+          <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Alternar navegação">
+            <span></span><span></span><span></span>
+          </button>
+          <ul id="nav-menu">
+            <li><a href="#about">Sobre</a></li>
+            <li><a href="#work">Projetos</a></li>
+            <li><a href="#results">Resultados</a></li>
+            <li><a href="#services">Serviços</a></li>
+            <li><a href="#stack">Stack &amp; Skills</a></li>
+            <li><a href="#blog">Artigos</a></li>
+            <li><a href="#contact" class="cta">Vamos Criar</a></li>
+          </ul>
+        </nav>
+        <button class="theme-toggle" aria-label="Alternar tema" title="Alternar tema"></button>
+      </div>
+    </header>
+    <div class="scroll-progress" aria-hidden="true"></div>
+
+    <main id="main">
+      <!-- Hero -->
+      <section id="hero" class="hero section-full" aria-label="Hero">
+        <div class="hero-bg" aria-hidden="true">
+          <!-- Provide either a subtle video loop or dusk city image as poster -->
+          <video class="bg-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/saopaulo-dusk/1600/900">
+            <source src="assets/saopaulo-loop.mp4" type="video/mp4" />
+          </video>
+          <div class="grain"></div>
+          <div class="vignette"></div>
+        </div>
+        <div class="hero-inner wrap">
+          <h1 class="hero-title">
+            Produtos Web Full‑Stack.<br />
+            <span class="accent">Escaláveis, elegantes e medíveis.</span>
+          </h1>
+          <p class="hero-kicker">Nicolas — Dev Full‑Stack • São Paulo</p>
+          <div class="hero-cta">
+            <a href="#work" class="btn btn-primary">Ver Projetos</a>
+            <a href="#contact" class="btn btn-ghost">Vamos Criar</a>
+          </div>
+          <div class="lyric-bar" aria-label="Mensagem em destaque">
+            <p>
+              <span class="lyric">“Ship > talk. Medir → aprender → iterar.”</span>
+              <span class="lyric" aria-hidden="true">“Ship > talk. Medir → aprender → iterar.”</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section id="about" class="section about">
+        <div class="wrap grid-2">
+          <div class="media">
+            <img src="https://picsum.photos/seed/guitar-portrait/1200/1600" alt="Nicolas segurando uma guitarra, luz da cidade ao fundo" loading="lazy" />
+          </div>
+          <div class="content reveal">
+            <h2 class="section-title">Sobre</h2>
+            <p>
+              Sou o Nicolas, desenvolvedor full‑stack. Construo APIs rápidas, interfaces acessíveis e integrações que destravam valor. Gosto de medir, otimizar e escalar — do banco ao browser.
+            </p>
+            <p>
+              Stack favorita: TypeScript/Node, React/Next.js, Python (FastAPI), bancos relacionais e NoSQL, contêineres e automação com CI/CD. Foco em DX, testes e observabilidade.
+            </p>
+            <a href="#contact" class="btn btn-primary">Vamos Criar</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Work / Projects -->
+      <section id="work" class="section work">
+        <div class="wrap">
+          <h2 class="section-title">Projetos em Destaque</h2>
+          <div class="projects-grid">
+            <!-- 6–8 tiles; placeholders with modal triggers -->
+            <article class="project-card" tabindex="0" data-project="p1">
+              <img src="https://picsum.photos/seed/project-api/1600/900" alt="Visual de API e banco de dados" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-api/1600/900">
+                <source src="assets/project-api-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>API de Tarefas — FastAPI + Postgres</h3>
+                <p>REST, JWT, testes e Docker</p>
+                <div class="tags"><span>Python</span><span>FastAPI</span><span>PostgreSQL</span><span>Docker</span></div>
+              </div>
+            </article>
+            <article class="project-card" tabindex="0" data-project="p2">
+              <img src="https://picsum.photos/seed/project-ecommerce/1600/900" alt="Loja virtual headless" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-ecommerce/1600/900">
+                <source src="assets/project-ecommerce-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>Ecommerce Headless — Next.js + Stripe</h3>
+                <p>SSR, webhooks e carrinho persistente</p>
+                <div class="tags"><span>Next.js</span><span>TypeScript</span><span>Stripe</span><span>Prisma</span></div>
+              </div>
+            </article>
+            <article class="project-card" tabindex="0" data-project="p3">
+              <img src="https://picsum.photos/seed/project-chat/1600/900" alt="Chat em tempo real" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-chat/1600/900">
+                <source src="assets/project-chat-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>Chat Tempo Real — Node + WebSocket</h3>
+                <p>Salas, presença e tipando eventos</p>
+                <div class="tags"><span>Node.js</span><span>WebSocket</span><span>Redis</span><span>Docker</span></div>
+              </div>
+            </article>
+            <article class="project-card" tabindex="0" data-project="p4">
+              <img src="https://picsum.photos/seed/project-dashboard/1600/900" alt="Dashboard de analytics" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-dashboard/1600/900">
+                <source src="assets/project-dashboard-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>Dashboard Analytics — React + D3</h3>
+                <p>Dados em tempo real e filtros</p>
+                <div class="tags"><span>React</span><span>D3.js</span><span>Tailwind</span></div>
+              </div>
+            </article>
+            <article class="project-card" tabindex="0" data-project="p5">
+              <img src="https://picsum.photos/seed/project-microservice/1600/900" alt="Arquitetura de microserviços" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-microservice/1600/900">
+                <source src="assets/project-microservice-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>Microserviço de Imagens — Go + gRPC</h3>
+                <p>Processamento e CDN fake</p>
+                <div class="tags"><span>Go</span><span>gRPC</span><span>MinIO</span></div>
+              </div>
+            </article>
+            <article class="project-card" tabindex="0" data-project="p6">
+              <img src="https://picsum.photos/seed/project-cicd/1600/900" alt="Pipeline de CI/CD" loading="lazy" />
+              <video class="card-video" autoplay muted loop playsinline poster="https://picsum.photos/seed/project-cicd/1600/900">
+                <source src="assets/project-cicd-loop.mp4" type="video/mp4" />
+              </video>
+              <div class="card-meta">
+                <h3>Infra & CI/CD — Actions + Terraform</h3>
+                <p>Infra como código e deploy</p>
+                <div class="tags"><span>Terraform</span><span>GitHub Actions</span><span>AWS</span></div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Modal container for case studies -->
+        <div class="modal" id="project-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Detalhes do projeto">
+          <div class="modal-backdrop" data-close></div>
+          <div class="modal-dialog" role="document">
+            <button class="modal-close" aria-label="Fechar" data-close>&times;</button>
+            <div class="modal-body">
+              <div class="modal-media"></div>
+              <div class="modal-content"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Resultados / Impacto -->
+      <section id="results" class="section results">
+        <div class="wrap">
+          <h2 class="section-title">Resultados</h2>
+          <p class="subtitle">Impacto mensurável em projetos reais.</p>
+          <div class="metrics">
+            <div class="metric reveal">
+              <div class="value" data-target="12">0</div>
+              <div class="label">Projetos entregues</div>
+            </div>
+            <div class="metric reveal">
+              <div class="value" data-target="99.9" data-decimals="1">0</div>
+              <div class="label">Uptime (%)</div>
+            </div>
+            <div class="metric reveal">
+              <div class="value" data-target="32" data-suffix="%">0</div>
+              <div class="label">Melhora no LCP</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Serviços -->
+      <section id="services" class="section services">
+        <div class="wrap">
+          <h2 class="section-title">Serviços</h2>
+          <div class="services-grid">
+            <article class="svc reveal">
+              <div class="ico" aria-hidden="true">💡</div>
+              <h3>Descoberta & Arquitetura</h3>
+              <p>Mapeamento de requisitos, design de domínio, trade‑offs e roadmap técnico.</p>
+            </article>
+            <article class="svc reveal">
+              <div class="ico" aria-hidden="true">⚙️</div>
+              <h3>APIs & Back‑end</h3>
+              <p>Serviços REST/GraphQL com autenticação, cache e observabilidade.</p>
+            </article>
+            <article class="svc reveal">
+              <div class="ico" aria-hidden="true">🖥️</div>
+              <h3>Front‑end & UI</h3>
+              <p>SPA/SSR acessíveis e rápidas, design system e testes de interface.</p>
+            </article>
+            <article class="svc reveal">
+              <div class="ico" aria-hidden="true">🚀</div>
+              <h3>DevOps & CI/CD</h3>
+              <p>Pipelines, infraestrutura como código e deploy contínuo.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stack & Skills -->
+      <section id="stack" class="section lyrics">
+        <div class="wrap grid-2">
+          <div class="content reveal">
+            <h2 class="section-title">Stack &amp; Skills</h2>
+            <p>
+              Tecnologias que uso no dia a dia para entregar rápido com qualidade e observabilidade.
+            </p>
+            <ul class="skills">
+              <li><strong>Back‑end:</strong> Node.js (Nest/Fastify), Python (FastAPI), Go</li>
+              <li><strong>Front‑end:</strong> React, Next.js (App Router), Vite, Tailwind</li>
+              <li><strong>Dados:</strong> PostgreSQL, Redis, MongoDB, Prisma</li>
+              <li><strong>Infra:</strong> Docker, Docker Compose, AWS (S3/EC2), Terraform</li>
+              <li><strong>Qualidade:</strong> Jest/Vitest, Playwright, GitHub Actions, OpenAPI</li>
+              <li><strong>Observabilidade:</strong> Prometheus, Grafana, Sentry</li>
+            </ul>
+          </div>
+          <div class="media vinyl">
+            <img src="https://picsum.photos/seed/stack-grid/1200/800" alt="Mosaico de logos de tecnologias" loading="lazy" />
+            <div class="wave-overlay" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Blog / Insights -->
+      <section id="blog" class="section blog">
+        <div class="wrap">
+          <h2 class="section-title">Artigos</h2>
+          <div class="posts">
+            <article class="post reveal">
+              <h3>Do Monólito ao Modular</h3>
+              <p>Quando separar serviços e quando manter junto: critérios práticos.</p>
+              <a href="#" class="read-more">Ler</a>
+            </article>
+            <article class="post reveal">
+              <h3>Perfis de Performance no Front</h3>
+              <p>Métricas Web Vitals, lazy loading estratégico e hidratação parcial.</p>
+              <a href="#" class="read-more">Ler</a>
+            </article>
+            <article class="post reveal">
+              <h3>Testes que Importam</h3>
+              <p>Testar comportamentos críticos primeiro: pirâmide prática e exemplos.</p>
+              <a href="#" class="read-more">Ler</a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section id="contact" class="section contact">
+        <div class="wrap grid-2">
+          <div class="content reveal">
+            <h2 class="section-title">Vamos Criar</h2>
+            <p>Tem um projeto, uma faixa ou uma collab em mente? Chama aí:</p>
+            <ul class="social">
+              <li><a href="https://www.instagram.com/" target="_blank" rel="noreferrer noopener" aria-label="Instagram">Instagram</a></li>
+              <li><a href="https://www.linkedin.com/" target="_blank" rel="noreferrer noopener" aria-label="LinkedIn">LinkedIn</a></li>
+              <li><a href="https://www.youtube.com/" target="_blank" rel="noreferrer noopener" aria-label="YouTube">YouTube</a></li>
+            </ul>
+            <details class="faq">
+              <summary>Como funciona o início de um projeto?</summary>
+              <p>Começo por uma call rápida (30 min) para entender objetivos, métricas e restrições. Em 48h envio proposta técnica e cronograma.</p>
+            </details>
+            <details class="faq">
+              <summary>Qual o prazo médio?</summary>
+              <p>Projetos de MVP variam de 2 a 6 semanas, dependendo do escopo e integrações.</p>
+            </details>
+          </div>
+          <form class="contact-form" novalidate>
+            <label> Nome
+              <input type="text" name="name" autocomplete="name" required />
+            </label>
+            <label> E-mail
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <label> Mensagem
+              <textarea name="message" rows="5" required></textarea>
+            </label>
+            <button type="submit" class="btn btn-primary">Enviar</button>
+            <p class="form-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer" role="contentinfo">
+      <div class="wrap">
+        <div class="pick" aria-hidden="true">
+          <!-- Minimal guitar pick icon -->
+          <svg viewBox="0 0 64 64" width="24" height="24" fill="currentColor" aria-hidden="true">
+            <path d="M32 4c9 0 20 5 24 12 4 7-1 19-8 27-7 8-16 17-20 17s-14-9-20-17C1 35-3 23 1 16 5 9 23 4 32 4z"/>
+          </svg>
+        </div>
+        <p>© 2025 Nicolas — Todos os direitos reservados</p>
+      </div>
+    </footer>
+
+    <script src="js/main.js" defer></script>
+  </body>
+  </html>

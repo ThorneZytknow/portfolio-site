@@ -1,0 +1,17 @@
+# Dependencies and packages
+node_modules/
+
+# Builds and artifacts
+dist/
+build/
+*.log
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Env/config
+.env
+.env.*

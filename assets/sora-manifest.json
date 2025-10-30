@@ -1,0 +1,66 @@
+[
+  {
+    "id": "hero-sp-dusk",
+    "outputPoster": "assets/saopaulo-dusk.jpg",
+    "outputVideo": "assets/saopaulo-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Vista aérea ao entardecer da cidade de São Paulo com acentos neon teal em janelas e outdoors selecionados, movimento de câmera sutil com parallax, granulação leve, céu índigo, look cinematográfico contemporâneo, loop contínuo de 8s, vinheta suave.",
+    "negativePrompt": "pessoas visíveis, trepidação, flicker no loop, artefatos de compressão, cores saturadas demais"
+  },
+  {
+    "id": "proj-api",
+    "outputPoster": "assets/project-api.jpg",
+    "outputVideo": "assets/project-api-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Macro cinematográfica de editor de código com endpoints FastAPI abertos e diagrama ERD de Postgres sobreposto com linhas teal, profundidade de campo rasa, acentos neon teal, mesa charcoal, leve drift de câmera, loop de 8s contínuo.",
+    "negativePrompt": "mãos, rostos, textos legíveis reais, trepidação, cortes bruscos"
+  },
+  {
+    "id": "proj-ecommerce",
+    "outputPoster": "assets/project-ecommerce.jpg",
+    "outputVideo": "assets/project-ecommerce-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Grade moderna de produtos em um laptop à noite, brilho teal sob a base, elementos do checkout Stripe sobrepostos com sutileza, reflexos de luz, câmera leve em push‑in, loop contínuo de 8s.",
+    "negativePrompt": "mãos, pessoas, logos explícitos, flicker de monitores"
+  },
+  {
+    "id": "proj-chat",
+    "outputPoster": "assets/project-chat.jpg",
+    "outputVideo": "assets/project-chat-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Janelas de terminal e balões de chat flutuando em espaço 3D, tique verde‑teal e pontos de presença, fundo índigo escuro, partículas discretas, loop de 8s.",
+    "negativePrompt": "rostos, mãos, ícones proprietários, jitter"
+  },
+  {
+    "id": "proj-dashboard",
+    "outputPoster": "assets/project-dashboard.jpg",
+    "outputVideo": "assets/project-dashboard-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Painéis de dashboard com linhas e barras animadas na paleta teal/ocre, brilho sutil nos pontos, pan de câmera por widgets, loop 8s suave.",
+    "negativePrompt": "legendas de dados reais, jitter, motion excessivo"
+  },
+  {
+    "id": "proj-microservice",
+    "outputPoster": "assets/project-microservice.jpg",
+    "outputVideo": "assets/project-microservice-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Close de servidores com miniaturas abstratas de arquivos fluindo por cabos como pulsos teal, HUD minimalista, loop 8s sem cortes.",
+    "negativePrompt": "marcas, pessoas, variação de iluminação brusca"
+  },
+  {
+    "id": "proj-cicd",
+    "outputPoster": "assets/project-cicd.jpg",
+    "outputVideo": "assets/project-cicd-loop.mp4",
+    "durationSec": 8,
+    "aspect": "16:9",
+    "prompt": "Visual de pipeline DevOps: nós em esteira acionando testes/build/deploy, linhas blueprint estilo Terraform, brilho teal, loop contínuo 8s.",
+    "negativePrompt": "logos proprietários, textos legíveis, travamentos"
+  }
+]
+
