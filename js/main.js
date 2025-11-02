@@ -88,46 +88,55 @@
   const closeEls = modal?.querySelectorAll('[data-close]');
   const projects = {
     p1: {
-      media: '<img src="assets/project-api.jpg" alt="API FastAPI e Postgres">',
-      title: 'API de Tarefas — FastAPI + Postgres',
-      body: 'CRUD de tarefas com autenticação JWT, testes (Pytest), migrações (Alembic) e containerização com Docker. Observabilidade com Prometheus e logs estruturados.',
-      repo: 'https://github.com/usuario/api-tarefas',
-      live: ''
+      media: '<img src="assets/project-mixtape.jpg" alt="Arte da mixtape Concreto Vivo">',
+      title: 'Mixtape “Concreto Vivo”',
+      body: 'Coleção de 7 faixas com versos confessionais, camadas de synth analógico e field recordings do centro de SP. Direção sonora + mix/master DIY.',
+      actions: [
+        { label: 'Ouvir Sneak Peek', href: 'https://soundcloud.com', variant: 'primary' },
+        { label: 'Moodboard', href: 'https://www.pinterest.com', variant: 'ghost' }
+      ]
     },
     p2: {
-      media: '<img src="assets/project-ecommerce.jpg" alt="Loja headless com Next e Stripe">',
-      title: 'Ecommerce Headless — Next.js + Stripe',
-      body: 'SSR/ISR para catálogo, carrinho persistente, checkout com Stripe e webhooks para confirmação de pedido. CMS opcional via Markdown/MDX.',
-      repo: 'https://github.com/usuario/next-stripe-store',
-      live: 'https://demo-store.example.com'
+      media: '<img src="assets/project-cypher.jpg" alt="Cypher Noturna Noite Azul">',
+      title: 'Cypher “Noite Azul”',
+      body: 'Captação multicâmera + projeções neon em viela da zona sul. Direção criativa, roteiro lírico coletivo e pós-produção com overlays glitch.',
+      actions: [
+        { label: 'Assistir teaser', href: 'https://www.youtube.com', variant: 'primary' },
+        { label: 'Storyboard', href: 'https://www.figma.com', variant: 'ghost' }
+      ]
     },
     p3: {
-      media: '<img src="assets/project-chat.jpg" alt="Chat em tempo real">',
-      title: 'Chat Tempo Real — Node + WebSocket',
-      body: 'Salas, presença, tipagem de eventos com TypeScript, rate limiting e persistência de mensagens no Redis. Testes end‑to‑end com Playwright.',
-      repo: 'https://github.com/usuario/node-realtime-chat',
-      live: ''
+      media: '<img src="assets/project-stream.jpg" alt="Overlay de stream Midnight Run">',
+      title: 'Overlay Stream “Midnight Run”',
+      body: 'HUD animado com widgets responsivos, trilha dinâmica e alerts sincronizados. Branding inspirado em vaporwave + estética arcade.',
+      actions: [
+        { label: 'Ver overlays', href: 'https://dribbble.com', variant: 'primary' }
+      ]
     },
     p4: {
-      media: '<img src="assets/project-dashboard.jpg" alt="Dashboard analytics">',
-      title: 'Dashboard Analytics — React + D3',
-      body: 'Conexão a API, filtros por período, gráficos customizados com D3 e acessibilidade em foco (teclado e ARIA).',
-      repo: 'https://github.com/usuario/analytics-dashboard',
-      live: ''
+      media: '<img src="assets/project-zine.jpg" alt="Zine Sintonia de Asfalto">',
+      title: 'Zine “Sintonia de Asfalto”',
+      body: 'Zine impresso de tiragem limitada com fotos analógicas e poemas que conectam cotidiano, grafite e lirismo urbano.',
+      actions: [
+        { label: 'Folhear online', href: 'https://issuu.com', variant: 'primary' }
+      ]
     },
     p5: {
-      media: '<img src="assets/project-microservice.jpg" alt="Microserviço Go">',
-      title: 'Microserviço de Imagens — Go + gRPC',
-      body: 'Upload, transformação (resize/crop) e armazenamento em MinIO, comunicação gRPC e gateway HTTP. CI para build e testes.',
-      repo: 'https://github.com/usuario/go-image-service',
-      live: ''
+      media: '<img src="assets/project-social.jpg" alt="Campanha Pixel Soul">',
+      title: 'Campanha “Pixel Soul”',
+      body: 'Série social para marca independente: scripts, copy emocional, filtros AR e motion loops com estética glitch teal + dourado.',
+      actions: [
+        { label: 'Ver case', href: 'https://behance.net', variant: 'primary' }
+      ]
     },
     p6: {
-      media: '<img src="assets/project-cicd.jpg" alt="CI/CD com Actions e Terraform">',
-      title: 'Infra & CI/CD — Actions + Terraform',
-      body: 'Pipelines com lint, testes, build e deploy. Infra como código para provisionar ambiente em AWS (S3/EC2) com Terraform.',
-      repo: 'https://github.com/usuario/iac-cicd-template',
-      live: ''
+      media: '<img src="assets/project-live.jpg" alt="Live Rua Aurora">',
+      title: 'Live session “Rua Aurora”',
+      body: 'Performance híbrida com guitarra, MPC e projeções reativas a sensores. Produção de luz, cenografia e mix ao vivo.',
+      actions: [
+        { label: 'Assistir Live', href: 'https://www.youtube.com', variant: 'primary' },
+        { label: 'Setlist', href: 'https://open.spotify.com', variant: 'ghost' }
+      ]
     }
   };
 
@@ -135,11 +144,14 @@
     const data = projects[id];
     if (!data || !modal) return;
     modalMedia.innerHTML = data.media;
-    const links = `
+    const actions = Array.isArray(data.actions) ? data.actions : [];
+    const links = actions.length ? `
       <div class="modal-actions">
-        ${data.repo ? `<a class="btn btn-ghost" href="${data.repo}" target="_blank" rel="noreferrer noopener">Código</a>` : ''}
-        ${data.live ? `<a class="btn btn-primary" href="${data.live}" target="_blank" rel="noreferrer noopener">Demo</a>` : ''}
-      </div>`;
+        ${actions.map((action) => {
+          const variant = action.variant === 'primary' ? 'btn-primary' : 'btn-ghost';
+          return `<a class="btn ${variant}" href="${action.href}" target="_blank" rel="noreferrer noopener">${action.label}</a>`;
+        }).join('')}
+      </div>` : '';
     modalContent.innerHTML = `<h3>${data.title}</h3><p>${data.body}</p>${links}`;
     modal.setAttribute('open', '');
     modal.setAttribute('aria-hidden', 'false');
@@ -196,7 +208,7 @@
     // Simula envio assíncrono; depois troque pelo seu endpoint (ex.: Formspree)
     status.textContent = 'Enviando…';
     await new Promise((r) => setTimeout(r, 800));
-    status.textContent = 'Valeu — retorno em breve!';
+    status.textContent = 'Mensagem recebida — te retorno com vibes e datas!';
     form.reset();
   });
 
@@ -228,27 +240,5 @@
     inner && (inner.style.transform = '');
   });
 
-  // Contagem animada de métricas
-  const metricIO = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target.querySelector('.value');
-      if (!el || el.dataset.done) return;
-      el.dataset.done = '1';
-      const target = parseFloat(el.dataset.target || '0');
-      const decimals = parseInt(el.dataset.decimals || '0', 10);
-      const suffix = el.dataset.suffix || '';
-      const start = performance.now();
-      const dur = 1000;
-      const tick = (t) => {
-        const k = Math.min(1, (t - start) / dur);
-        const val = (target * k).toFixed(decimals);
-        el.textContent = val + suffix;
-        if (k < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-      metricIO.unobserve(entry.target);
-    });
-  }, { threshold: 0.4 });
-  document.querySelectorAll('.metric').forEach((m) => metricIO.observe(m));
+  // Sem métricas numéricas — foco em experiência sensorial
 })();
