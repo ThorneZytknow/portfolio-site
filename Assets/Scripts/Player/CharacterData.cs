@@ -8,6 +8,9 @@ public class CharacterData : ScriptableObject
     public string characterId; // ID correspondente no catálogo do PlayFab
     public string description;
 
+    [Header("Arquétipo e Estilo de Luta")]
+    public string archetype; // Ex: Balanced, Zoner, Heavy, Speedster, Controller
+
     [Header("Atributos de Movimentação e Física")]
     public float moveSpeed = 8f;
     public float jumpForce = 12f;

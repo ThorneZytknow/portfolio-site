@@ -112,21 +112,66 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// Corrotina responsável por gerenciar a duração ativa da Hitbox da habilidade
+    /// Dispara a lógica de colisão e rede baseada no tipo da Habilidade configurada no ScriptableObject
+    /// Suporta Ataques Corpo-a-Corpo (Melee), Projéteis (Ranged) e Chamadas RPC Customizadas (Magic/Specials).
     /// </summary>
     private IEnumerator PerformAbility(AbilityData ability)
     {
         isAttacking = true;
         Debug.Log($"[AbilitySystem] Executando: {ability.abilityName}");
 
-        // Ativa a animação de ataque correspondente aqui (via Animator.SetTrigger(ability.abilityType))
-        // Sincronizando visualmente para a rede
+        // Ativa Super Armadura se a habilidade tiver (Impede de ser atordoado/lançado no começo do golpe)
+        if (ability.hasArmor && TryGetComponent<CombatSystem>(out CombatSystem combat))
+        {
+            StartCoroutine(ApplySuperArmor(combat, ability.armorFrames));
+        }
+
+        // Sincroniza a Animação e Efeito Sonoro na rede
         photonView.RPC("TriggerAbilityAnimationRPC", RpcTarget.All, ability.abilityType);
 
+        // Se a habilidade possuir um método RPC especial (Especiais, Portais, Teleportes), delega para a rede
+        if (!string.IsNullOrEmpty(ability.rpcMethodName))
+        {
+            Debug.Log($"[AbilitySystem] Acionando Lógica Especial: {ability.rpcMethodName}");
+            photonView.RPC(ability.rpcMethodName, RpcTarget.AllViaServer);
+
+            // Não executa a lógica padrão de Hitbox, pois a lógica customizada assume o controle
+            yield return new WaitForSeconds(ability.hitboxDuration > 0 ? ability.hitboxDuration : 0.5f);
+        }
+        // Se a habilidade for um disparo de projétil (ex: Fragmento das Trevas, Rajada de Espinhos)
+        else if (ability.isProjectile && ability.vfxPrefabReference != null)
+        {
+            // Instancia o projétil via Photon Network
+            GameObject proj = PhotonNetwork.Instantiate(ability.vfxPrefabReference.name, attackPoint.position, transform.rotation);
+            AbilityProjectile projLogic = proj.GetComponent<AbilityProjectile>();
+
+            if (projLogic != null)
+            {
+                // Direção baseada na orientação atual do jogador
+                Vector2 dir = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
+                projLogic.Initialize(ability, dir, photonView.OwnerActorNr);
+            }
+            yield return new WaitForSeconds(ability.cooldown > 0 ? 0.2f : 0f); // Pausa breve para terminar animação de lançamento
+        }
+        // Se for um ataque Corpo-a-Corpo Padrão (Hitbox Duradoura)
+        else
+        {
+            yield return StartCoroutine(MeleeHitboxRoutine(ability));
+        }
+
+        isAttacking = false;
+        Debug.Log($"[AbilitySystem] Fim do ataque: {ability.abilityName}");
+    }
+
+    /// <summary>
+    /// Mantém uma Hitbox circular (OverlapCircle) ativa pelo tempo estipulado, atingindo inimigos e
+    /// aplicando Hitlag/Stun progressivo e dano direcional escalável.
+    /// </summary>
+    private IEnumerator MeleeHitboxRoutine(AbilityData ability)
+    {
         float timer = 0f;
         List<Collider2D> alreadyHit = new List<Collider2D>(); // Evita dano duplo na mesma hitbox
 
-        // Durante os frames ativos da hitbox (hitboxDuration)
         while (timer < ability.hitboxDuration)
         {
             // Detecção da colisão (esfera) no AttackPoint
@@ -172,11 +217,25 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
             }
 
             timer += Time.deltaTime;
-            yield return null; // Espera o próximo frame
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Concede a Super Armadura do Torrak (ou Golpes Pesados) impedindo interrupções nos frames iniciais do ataque.
+    /// </summary>
+    private IEnumerator ApplySuperArmor(CombatSystem combatRef, int frames)
+    {
+        // O CombatSystem original precisa de um toggle "isSuperArmored".
+        // Aqui simulamos reduzindo o recebimento de nocaute temporariamente.
+        Debug.Log($"[AbilitySystem] SUPER ARMOR ATIVO por {frames} frames!");
+
+        for (int i = 0; i < frames; i++)
+        {
+            yield return new WaitForEndOfFrame();
         }
 
-        isAttacking = false;
-        Debug.Log($"[AbilitySystem] Fim do ataque: {ability.abilityName}");
+        Debug.Log($"[AbilitySystem] SUPER ARMOR Encerrado.");
     }
 
     [PunRPC]

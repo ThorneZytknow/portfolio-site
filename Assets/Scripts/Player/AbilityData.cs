@@ -18,8 +18,15 @@ public class AbilityData : ScriptableObject
     public float cooldown = 0.5f; // Tempo de recarga após o uso
     public float staminaCost = 10f; // Custo de energia (se houver sistema de stamina)
 
+    [Header("Propriedades Avançadas")]
+    public bool hasArmor = false; // Define se o golpe possui Super Armor
+    public int armorFrames = 0; // Por quantos frames a armadura fica ativa
+    public string rpcMethodName; // Nome do RPC customizado, caso este ataque precise de lógica de rede extra
+    public bool isProjectile = false; // Indica se invoca um projétil em vez de usar overlapSphere
+    public float projectileSpeed = 0f;
+
     [Header("Feedbacks (Visuais e Gameplay)")]
-    public GameObject hitEffectPrefab; // Partícula de acerto
+    public GameObject vfxPrefabReference; // Partícula de acerto / invocação
     public AudioClip hitSound; // Efeito sonoro
     public int hitlagFrames = 4; // Congelamento da tela no impacto (para dar "peso")
     public float hitstunDuration = 0.3f; // Tempo que o alvo fica incapacitado
