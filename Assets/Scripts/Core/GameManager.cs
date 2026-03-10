@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 
+[RequireComponent(typeof(PhotonView))]
 public class GameManager : MonoBehaviourPunCallbacks
 {
     [Tooltip("Prefab do jogador que deve estar na pasta Resources")]
@@ -54,6 +55,46 @@ public class GameManager : MonoBehaviourPunCallbacks
         // Instancia o objeto em todos os clientes
         GameObject myPlayer = PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
         Debug.Log("Jogador instanciado em: " + spawnPosition);
+
+        // Registra o jogador na câmera dinâmica
+        CameraController camController = FindObjectOfType<CameraController>();
+        if (camController != null)
+        {
+            camController.AddTarget(myPlayer.transform);
+        }
+        else
+        {
+            Debug.LogWarning("[GameManager] CameraController não encontrado na cena!");
+        }
+
+        // Registra o jogador no HUDManager
+        if (HUDManager.Instance != null)
+        {
+            // O jogador começa com 3 vidas por padrão de código, aqui poderia vir da sala custom properties
+            int startingStocks = 3;
+            // Se o StockSystem for instanciado antes, ele avisa. Mas como estamos criando agora:
+            HUDManager.Instance.RegisterPlayer(PhotonNetwork.LocalPlayer.ActorNumber, PhotonNetwork.NickName, startingStocks);
+        }
+
+        // Emite um RPC para garantir que clientes remotos também registrem minha cópia nas câmeras deles
+        photonView.RPC("RegisterRemotePlayerRPC", RpcTarget.Others, myPlayer.GetComponent<PhotonView>().ViewID);
+    }
+
+    [PunRPC]
+    public void RegisterRemotePlayerRPC(int viewID)
+    {
+        PhotonView pView = PhotonView.Find(viewID);
+        if (pView != null)
+        {
+            CameraController camController = FindObjectOfType<CameraController>();
+            if (camController != null) camController.AddTarget(pView.transform);
+
+            if (HUDManager.Instance != null)
+            {
+                int startingStocks = 3;
+                HUDManager.Instance.RegisterPlayer(pView.OwnerActorNr, pView.Owner.NickName, startingStocks);
+            }
+        }
     }
 
     #region Callbacks do Photon (Gestão da Sala)

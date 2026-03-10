@@ -16,6 +16,10 @@ public class PlayFabAuthManager : MonoBehaviour
     // Indica se o jogador está logado e o token é válido
     public bool IsLoggedIn { get; private set; }
 
+    // Evento disparado quando a autenticação assíncrona é concluída com sucesso
+    public delegate void OnLoginSuccessAction();
+    public static event OnLoginSuccessAction OnLoginSuccessEvent;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -73,6 +77,9 @@ public class PlayFabAuthManager : MonoBehaviour
         {
             EconomyManager.Instance.GetUserInventory();
         }
+
+        // Dispara o evento para outros Managers buscarem seus dados assíncronos
+        OnLoginSuccessEvent?.Invoke();
 
         // Como o login é o pré-requisito, podemos iniciar o matchmaking do Photon aqui
         if (NetworkManager.Instance != null && !Photon.Pun.PhotonNetwork.IsConnected)
