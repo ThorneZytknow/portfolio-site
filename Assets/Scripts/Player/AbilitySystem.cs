@@ -1,10 +1,10 @@
 using UnityEngine;
-using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
 
-[RequireComponent(typeof(PhotonView))]
-public class AbilitySystem : MonoBehaviourPunCallbacks
+public class AbilitySystem : MonoBehaviour
 {
     [Header("Kit de Habilidades do Personagem")]
     public AbilityData neutralAbility;
@@ -20,34 +20,34 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
     private Dictionary<string, float> abilityCooldowns = new Dictionary<string, float>();
     private bool isAttacking = false;
 
-    // Stamina (Para ataques especiais ou esquivas)
     public float currentStamina = 100f;
     public float maxStamina = 100f;
     public float staminaRegenRate = 5f;
 
+    private PlayerController controller;
+
     private void Start()
     {
-        // Inicializa cooldowns
         abilityCooldowns.Add("Neutral", 0f);
         abilityCooldowns.Add("Up", 0f);
         abilityCooldowns.Add("Down", 0f);
         abilityCooldowns.Add("Special", 0f);
+
+        controller = GetComponent<PlayerController>();
     }
 
     private void Update()
     {
-        if (!photonView.IsMine) return;
+        if (controller == null || !controller.isLocalPlayer) return;
 
-        // Regeneração natural da Stamina (com limite)
         if (currentStamina < maxStamina)
         {
             currentStamina += staminaRegenRate * Time.deltaTime;
         }
 
-        // Atualiza a Stamina na HUD
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateStamina(photonView.OwnerActorNr, currentStamina);
+            HUDManager.Instance.UpdateStamina(controller.actorNumber, currentStamina);
         }
 
         ProcessAbilityInputs();
@@ -126,34 +126,24 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
             StartCoroutine(ApplySuperArmor(combat, ability.armorFrames));
         }
 
-        // Sincroniza a Animação e Efeito Sonoro na rede
-        photonView.RPC("TriggerAbilityAnimationRPC", RpcTarget.All, ability.abilityType);
-
-        // Se a habilidade possuir um método RPC especial (Especiais, Portais, Teleportes), delega para a rede
         if (!string.IsNullOrEmpty(ability.rpcMethodName))
         {
-            Debug.Log($"[AbilitySystem] Acionando Lógica Especial: {ability.rpcMethodName}");
-            photonView.RPC(ability.rpcMethodName, RpcTarget.AllViaServer);
-
-            // Não executa a lógica padrão de Hitbox, pois a lógica customizada assume o controle
+            Debug.Log($"[AbilitySystem] Lógica Especial disparada via SendMessage: {ability.rpcMethodName}");
+            SendMessage(ability.rpcMethodName, SendMessageOptions.DontRequireReceiver);
             yield return new WaitForSeconds(ability.hitboxDuration > 0 ? ability.hitboxDuration : 0.5f);
         }
-        // Se a habilidade for um disparo de projétil (ex: Fragmento das Trevas, Rajada de Espinhos)
         else if (ability.isProjectile && ability.vfxPrefabReference != null)
         {
-            // Instancia o projétil via Photon Network
-            GameObject proj = PhotonNetwork.Instantiate(ability.vfxPrefabReference.name, attackPoint.position, transform.rotation);
+            GameObject proj = Instantiate(ability.vfxPrefabReference, attackPoint.position, transform.rotation);
             AbilityProjectile projLogic = proj.GetComponent<AbilityProjectile>();
 
             if (projLogic != null)
             {
-                // Direção baseada na orientação atual do jogador
                 Vector2 dir = transform.localScale.x > 0 ? Vector2.right : Vector2.left;
-                projLogic.Initialize(ability, dir, photonView.OwnerActorNr);
+                projLogic.Initialize(ability, dir, controller.actorNumber);
             }
-            yield return new WaitForSeconds(ability.cooldown > 0 ? 0.2f : 0f); // Pausa breve para terminar animação de lançamento
+            yield return new WaitForSeconds(ability.cooldown > 0 ? 0.2f : 0f);
         }
-        // Se for um ataque Corpo-a-Corpo Padrão (Hitbox Duradoura)
         else
         {
             yield return StartCoroutine(MeleeHitboxRoutine(ability));
@@ -182,27 +172,35 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
             {
                 if (!alreadyHit.Contains(enemy))
                 {
-                    PhotonView enemyView = enemy.GetComponent<PhotonView>();
-                    // Só acerta se for outro player (evita fogo amigo se for em times, aqui focamos no ID do view)
-                    if (enemyView != null && !enemyView.IsMine)
+                    CombatSystem enemyCombat = enemy.GetComponent<CombatSystem>();
+                    if (enemyCombat != null)
                     {
+                        PlayerController targetController = enemyCombat.GetComponent<PlayerController>();
+                        if (targetController != null && targetController.actorNumber == controller.actorNumber)
+                            continue;
+
                         alreadyHit.Add(enemy);
                         hasHitThisFrame = true;
 
-                        // Incrementa o número de mortes (Kills) do atacante, mas deixaremos que o alvo lide com isso
                         if (MatchResultsManager.Instance != null) MatchResultsManager.Instance.AddDamage(ability.damage);
 
-                        // Direção baseada na rotação atual do jogador (invertendo o X se estiver virado para a esquerda)
                         float directionX = transform.localScale.x > 0 ? ability.knockbackDirection.x : -ability.knockbackDirection.x;
                         Vector2 finalKnockback = new Vector2(directionX, ability.knockbackDirection.y).normalized;
 
-                        // Envia os dados avançados pelo RPC do CombatSystem do alvo
-                        enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
-                            ability.damage,
-                            ability.baseKnockback,
-                            finalKnockback,
-                            ability.hitlagFrames,
-                            ability.hitstunDuration);
+                        if (LocalServerClient.Instance != null && targetController != null)
+                        {
+                            var dmgPacket = new CombatDealDamage
+                            {
+                                TargetActorNumber = targetController.actorNumber,
+                                DamageAmount = ability.damage,
+                                BaseKnockback = ability.baseKnockback,
+                                DirX = finalKnockback.x,
+                                DirY = finalKnockback.y,
+                                HitlagFrames = ability.hitlagFrames,
+                                HitstunDuration = ability.hitstunDuration
+                            };
+                            LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
+                        }
                     }
                 }
             }
@@ -238,7 +236,7 @@ public class AbilitySystem : MonoBehaviourPunCallbacks
         Debug.Log($"[AbilitySystem] SUPER ARMOR Encerrado.");
     }
 
-    [PunRPC]
+
     public void TriggerAbilityAnimationRPC(string animType)
     {
         // Aqui chamamos o animador para tocar a animação correspondente em todos os clientes

@@ -1,9 +1,9 @@
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
-[RequireComponent(typeof(PhotonView))]
-public class StockSystem : MonoBehaviourPunCallbacks
+
+public class StockSystem : MonoBehaviour
 {
     [Header("Configurações de Partida")]
     public int startingStocks = 3;
@@ -11,6 +11,7 @@ public class StockSystem : MonoBehaviourPunCallbacks
 
     [Header("Referências")]
     private CombatSystem combatSystem;
+    private PlayerController playerController;
     private Rigidbody2D rb;
 
     [Header("Respawn")]
@@ -21,6 +22,7 @@ public class StockSystem : MonoBehaviourPunCallbacks
     private void Awake()
     {
         combatSystem = GetComponent<CombatSystem>();
+        playerController = GetComponent<PlayerController>();
         rb = GetComponent<Rigidbody2D>();
     }
 
@@ -28,20 +30,15 @@ public class StockSystem : MonoBehaviourPunCallbacks
     {
         currentStocks = startingStocks;
 
-        // Atualiza a HUD inicial se existir
-        if (HUDManager.Instance != null && photonView.IsMine)
+        if (HUDManager.Instance != null && playerController.isLocalPlayer)
         {
-            HUDManager.Instance.UpdateStocks(photonView.OwnerActorNr, currentStocks);
+            HUDManager.Instance.UpdateStocks(playerController.actorNumber, currentStocks);
         }
     }
 
-    /// <summary>
-    /// Chamado por triggers (Blast Zones / Kill Volumes) na borda da tela
-    /// </summary>
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Só processa a eliminação no cliente que é dono do personagem
-        if (!photonView.IsMine || isDead) return;
+        if (!playerController.isLocalPlayer || isDead) return;
 
         if (collision.CompareTag("BlastZone"))
         {
@@ -56,12 +53,17 @@ public class StockSystem : MonoBehaviourPunCallbacks
 
         Debug.Log($"[StockSystem] Jogador caiu! Vidas restantes: {currentStocks}");
 
-        // Desativa física para não continuar caindo
+        if (HUDManager.Instance != null)
+        {
+            HUDManager.Instance.UpdateStocks(playerController.actorNumber, currentStocks);
+        }
+
+        if (MatchResultsManager.Instance != null) MatchResultsManager.Instance.AddDeath();
+
         rb.velocity = Vector2.zero;
         rb.isKinematic = true;
 
-        // Oculta visualmente em todos os clientes
-        photonView.RPC("SetPlayerVisibilityRPC", RpcTarget.All, false);
+        SetPlayerVisibilityLocal(false);
 
         if (currentStocks > 0)
         {
@@ -70,27 +72,21 @@ public class StockSystem : MonoBehaviourPunCallbacks
         else
         {
             Debug.Log("[StockSystem] GAME OVER para este jogador.");
-
-            // Avisa pela rede que este jogador perdeu (Game Over para ele)
-            photonView.RPC("DeclareDefeatRPC", RpcTarget.All);
+            DeclareDefeatLocal();
         }
     }
 
-    [PunRPC]
-    public void DeclareDefeatRPC()
+    public void DeclareDefeatLocal()
     {
-        // Remove a câmera de acompanhar um fantasma
         CameraController camController = FindObjectOfType<CameraController>();
         if (camController != null) camController.RemoveTarget(transform);
 
         if (MatchResultsManager.Instance != null)
         {
-            // Se eu sou o jogador que perdeu as vidas
-            if (photonView.IsMine)
+            if (playerController.isLocalPlayer)
             {
                 MatchResultsManager.Instance.EndMatch(false); // Derrota
             }
-            // Se eu NÃO sou o jogador (ou seja, foi meu oponente quem zerou as vidas)
             else
             {
                 MatchResultsManager.Instance.EndMatch(true); // Vitória!
@@ -102,18 +98,13 @@ public class StockSystem : MonoBehaviourPunCallbacks
     {
         yield return new WaitForSeconds(respawnDelay);
 
-        // Zera o dano
         combatSystem.ResetDamage();
+        transform.position = new Vector3(0, 5, 0);
 
-        // Move para o centro (Ponto de Spawn)
-        transform.position = new Vector3(0, 5, 0); // Exemplo, o ideal é pegar do GameManager
-
-        // Reativa visibilidade e física
-        photonView.RPC("SetPlayerVisibilityRPC", RpcTarget.All, true);
+        SetPlayerVisibilityLocal(true);
         rb.isKinematic = false;
         isDead = false;
 
-        // Inicia frames de invencibilidade (piscar)
         StartCoroutine(InvincibilityRoutine());
     }
 
@@ -134,10 +125,9 @@ public class StockSystem : MonoBehaviourPunCallbacks
         Debug.Log("[StockSystem] Invencibilidade Acabou.");
     }
 
-    [PunRPC]
-    public void SetPlayerVisibilityRPC(bool isVisible)
+
+    public void SetPlayerVisibilityLocal(bool isVisible)
     {
-        // Ativa/desativa os renderers visuais, mas mantém o objeto ativo para escutar RPCs
         Renderer[] renderers = GetComponentsInChildren<Renderer>();
         foreach (var rend in renderers)
         {

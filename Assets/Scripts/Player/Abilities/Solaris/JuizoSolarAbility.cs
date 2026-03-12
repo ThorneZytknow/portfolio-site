@@ -1,5 +1,8 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
 /// <summary>
@@ -7,7 +10,7 @@ using System.Collections;
 /// Um raio vertical carregado que atinge do teto até o chão na posição alvo.
 /// Alto dano de Explosão e Knockback se canalizado com sucesso.
 /// </summary>
-public class JuizoSolarAbility : MonoBehaviourPun
+public class JuizoSolarAbility : MonoBehaviour
 {
     private AbilityData sourceAbility;
     private int ownerActorNumber;
@@ -21,61 +24,50 @@ public class JuizoSolarAbility : MonoBehaviourPun
         sourceAbility = data;
         targetPosition = target;
         ownerActorNumber = ownerId;
-
-        if (photonView.IsMine)
-        {
-            StartCoroutine(ChargeAndFireRoutine());
-        }
+        StartCoroutine(ChargeAndFireRoutine());
     }
 
     private IEnumerator ChargeAndFireRoutine()
     {
-        // Posição inicial visual (Aviso no chão/teto)
         Debug.Log($"[Solaris] Carregando Juízo Solar em {targetPosition}");
 
-        // Mostra o pilar dourado no alvo por 1.5s
         if (sourceAbility.vfxPrefabReference != null)
         {
-            PhotonNetwork.Instantiate(sourceAbility.vfxPrefabReference.name, targetPosition, Quaternion.identity);
+            Instantiate(sourceAbility.vfxPrefabReference, targetPosition, Quaternion.identity);
         }
 
         yield return new WaitForSeconds(chargeTime);
 
         Debug.Log("[Solaris] Juízo Solar disparado!");
 
-        // Raio caiu: OverlapCircle ou Box para causar dano explosivo na área do alvo
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(targetPosition, sourceAbility.hitboxRange, LayerMask.GetMask("Player"));
-
-        bool hitSomeone = false;
 
         foreach (Collider2D enemy in hitEnemies)
         {
-            PhotonView enemyView = enemy.GetComponent<PhotonView>();
-            if (enemyView != null && enemyView.OwnerActorNr != ownerActorNumber)
+            PlayerController targetController = enemy.GetComponent<PlayerController>();
+            if (targetController != null && targetController.actorNumber != ownerActorNumber)
             {
-                hitSomeone = true;
-
-                // Raio caindo de cima, esmaga o alvo para baixo (Spike/Meteor)
                 Vector2 hitDirection = new Vector2(0f, -1f).normalized;
 
-                enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
-                    sourceAbility.damage,
-                    sourceAbility.baseKnockback,
-                    hitDirection,
-                    sourceAbility.hitlagFrames,
-                    sourceAbility.hitstunDuration);
+                if (LocalServerClient.Instance != null)
+                {
+                    var dmgPacket = new CombatDealDamage
+                    {
+                        TargetActorNumber = targetController.actorNumber,
+                        DamageAmount = sourceAbility.damage,
+                        BaseKnockback = sourceAbility.baseKnockback,
+                        DirX = hitDirection.x,
+                        DirY = hitDirection.y,
+                        HitlagFrames = sourceAbility.hitlagFrames,
+                        HitstunDuration = sourceAbility.hitstunDuration
+                    };
+                    LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
+                }
 
-                // Incrementa estatística do lançador
                 if (MatchResultsManager.Instance != null) MatchResultsManager.Instance.AddDamage(sourceAbility.damage);
             }
         }
 
-        if (hitSomeone)
-        {
-            // Opcional: Efeito extra de cratera ou som de acerto massivo.
-        }
-
-        // Destrói o objeto controlador do especial via rede
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 }

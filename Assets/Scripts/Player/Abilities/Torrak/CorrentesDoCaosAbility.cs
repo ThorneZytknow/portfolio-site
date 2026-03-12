@@ -1,5 +1,8 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
 /// <summary>
@@ -7,14 +10,14 @@ using System.Collections;
 /// Lança dois projéteis de correntes em lados opostos. Se ambas acertarem alvos diferentes,
 /// puxa ambos para o centro causando dano de colisão extra.
 /// </summary>
-public class CorrentesDoCaosAbility : MonoBehaviourPun
+public class CorrentesDoCaosAbility : MonoBehaviour
 {
     public float chainSpeed = 25f;
     public float maxRange = 10f;
 
     // Alvos presos
-    private PhotonView leftTargetView;
-    private PhotonView rightTargetView;
+    private PlayerController leftTargetController;
+    private PlayerController rightTargetController;
 
     private int ownerId;
     private float baseDmg = 10f;
@@ -23,60 +26,66 @@ public class CorrentesDoCaosAbility : MonoBehaviourPun
     public void Initialize(int id)
     {
         ownerId = id;
-
-        if (photonView.IsMine)
-        {
-            StartCoroutine(ChainShotRoutine());
-        }
+        StartCoroutine(ChainShotRoutine());
     }
 
     private IEnumerator ChainShotRoutine()
     {
         Debug.Log("[Torrak] Disparando Correntes Duplas...");
 
-        // Usamos Raycast para simular as correntes rapidamente
         RaycastHit2D hitLeft = Physics2D.Raycast(transform.position, Vector2.left, maxRange, LayerMask.GetMask("Player"));
         RaycastHit2D hitRight = Physics2D.Raycast(transform.position, Vector2.right, maxRange, LayerMask.GetMask("Player"));
 
-        // Se acertar pela esquerda e não for o próprio Torrak
         if (hitLeft.collider != null)
         {
-            PhotonView vLeft = hitLeft.collider.GetComponent<PhotonView>();
-            if (vLeft != null && vLeft.OwnerActorNr != ownerId) leftTargetView = vLeft;
+            PlayerController pLeft = hitLeft.collider.GetComponent<PlayerController>();
+            if (pLeft != null && pLeft.actorNumber != ownerId) leftTargetController = pLeft;
         }
 
-        // Se acertar pela direita e não for o próprio Torrak
         if (hitRight.collider != null)
         {
-            PhotonView vRight = hitRight.collider.GetComponent<PhotonView>();
-            if (vRight != null && vRight.OwnerActorNr != ownerId) rightTargetView = vRight;
+            PlayerController pRight = hitRight.collider.GetComponent<PlayerController>();
+            if (pRight != null && pRight.actorNumber != ownerId) rightTargetController = pRight;
         }
 
-        // Se prendeu nos DOIS lados simultaneamente: Puxão de Colisão!
-        if (leftTargetView != null && rightTargetView != null)
+        void SendDamage(int targetActor, float dmg, float kb, Vector2 dir, int lag, float stun)
+        {
+            if (LocalServerClient.Instance != null)
+            {
+                var dmgPacket = new CombatDealDamage
+                {
+                    TargetActorNumber = targetActor,
+                    DamageAmount = dmg,
+                    BaseKnockback = kb,
+                    DirX = dir.x,
+                    DirY = dir.y,
+                    HitlagFrames = lag,
+                    HitstunDuration = stun
+                };
+                LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
+            }
+        }
+
+        if (leftTargetController != null && rightTargetController != null)
         {
             Debug.Log("[Torrak] Correntes Prenderam dois alvos! COLISÃO IMINENTE!");
-
-            // Aplica stun longo e dano massivo em ambos
-            leftTargetView.RPC("TakeAdvancedDamageRPC", RpcTarget.All, baseDmg + collisionDmg, 30f, Vector2.right, 10, 1.5f);
-            rightTargetView.RPC("TakeAdvancedDamageRPC", RpcTarget.All, baseDmg + collisionDmg, 30f, Vector2.left, 10, 1.5f);
+            SendDamage(leftTargetController.actorNumber, baseDmg + collisionDmg, 30f, Vector2.right, 10, 1.5f);
+            SendDamage(rightTargetController.actorNumber, baseDmg + collisionDmg, 30f, Vector2.left, 10, 1.5f);
         }
-        else if (leftTargetView != null) // Só esquerda
+        else if (leftTargetController != null)
         {
-            leftTargetView.RPC("TakeAdvancedDamageRPC", RpcTarget.All, baseDmg, 15f, Vector2.left, 5, 0.5f);
+            SendDamage(leftTargetController.actorNumber, baseDmg, 15f, Vector2.left, 5, 0.5f);
         }
-        else if (rightTargetView != null) // Só direita
+        else if (rightTargetController != null)
         {
-            rightTargetView.RPC("TakeAdvancedDamageRPC", RpcTarget.All, baseDmg, 15f, Vector2.right, 5, 0.5f);
+            SendDamage(rightTargetController.actorNumber, baseDmg, 15f, Vector2.right, 5, 0.5f);
         }
         else
         {
             Debug.Log("[Torrak] Correntes erraram!");
         }
 
-        // Tempo de animação de recolhimento
         yield return new WaitForSeconds(0.5f);
-
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 }

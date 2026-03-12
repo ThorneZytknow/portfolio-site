@@ -1,5 +1,8 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
 /// <summary>
@@ -7,7 +10,7 @@ using System.Collections;
 /// Instancia um clone visual translúcido que permanece estático no mapa.
 /// O clone copia o próximo ataque Neutro ou Especial da jogadora com dano reduzido (60%).
 /// </summary>
-public class SombraEspelhadaAbility : MonoBehaviourPun
+public class SombraEspelhadaAbility : MonoBehaviour
 {
     private AbilityData sourceAbility;
     private int ownerActorNumber;
@@ -21,20 +24,14 @@ public class SombraEspelhadaAbility : MonoBehaviourPun
         sourceAbility = data;
         ownerActorNumber = ownerId;
 
-        // Se eu sou o dono do clone, inicio o timer de desaparecimento (4s)
-        if (photonView.IsMine)
-        {
-            StartCoroutine(LifeTimer());
-            // Inscreve a sombra para escutar eventos de ataque do dono
-            // (Para protótipo simples, o AbilitySystem poderia chamar um evento `OnAttackFired` e a sombra assinar)
-        }
+        StartCoroutine(LifeTimer());
     }
 
     private IEnumerator LifeTimer()
     {
         yield return new WaitForSeconds(4f); // Duração da sombra definida no GDD
         Debug.Log("[Nyxara] Sombra espelhada dissipada.");
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 
     /// <summary>
@@ -51,7 +48,7 @@ public class SombraEspelhadaAbility : MonoBehaviourPun
         if (attackToReplicate.isProjectile && attackToReplicate.vfxPrefabReference != null)
         {
             // Instancia projétil copiando direção, porém partindo do transform do clone
-            GameObject proj = PhotonNetwork.Instantiate(attackToReplicate.vfxPrefabReference.name, transform.position, transform.rotation);
+            GameObject proj = Instantiate(attackToReplicate.vfxPrefabReference, transform.position, transform.rotation);
             AbilityProjectile logic = proj.GetComponent<AbilityProjectile>();
 
             if (logic != null)
@@ -77,11 +74,11 @@ public class SombraEspelhadaAbility : MonoBehaviourPun
 
             foreach (Collider2D enemy in hitEnemies)
             {
-                PhotonView enemyView = enemy.GetComponent<PhotonView>();
-                if (enemyView != null && enemyView.OwnerActorNr != ownerActorNumber)
+                CombatSystem enemyCombat = enemy.GetComponent<CombatSystem>();
+                if (enemyCombat != null)
                 {
                     Vector2 hitDir = (enemy.transform.position - transform.position).normalized;
-                    enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
+                    enemyCombat.ReceiveDamageLocally(
                         attackToReplicate.damage * 0.6f,
                         attackToReplicate.baseKnockback * 0.6f,
                         hitDir,
@@ -92,6 +89,6 @@ public class SombraEspelhadaAbility : MonoBehaviourPun
         }
 
         // Dissipa logo após copiar (Alto Risco/Recompensa - Combo setups)
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 }

@@ -1,72 +1,54 @@
 using UnityEngine;
 using UnityEngine.UI;
-using Photon.Pun;
-using TMPro; // TextMeshPro para UI moderna na Unity
+using TMPro;
 
-public class MatchmakingUI : MonoBehaviourPunCallbacks
+public class MatchmakingUI : MonoBehaviour
 {
-    [Header("UI do Jogador (PlayFab)")]
+    [Header("UI do Jogador (LocalAuth)")]
     [SerializeField] private TMP_Text playerNameText;
     [SerializeField] private TMP_Text softCurrencyText;
     [SerializeField] private TMP_Text premiumCurrencyText;
 
-    [Header("UI de Matchmaking (Photon)")]
+    [Header("UI de Matchmaking (LocalServer)")]
     [SerializeField] private Button findMatchButton;
     [SerializeField] private TMP_Text connectionStatusText;
 
     private void Start()
     {
-        // Garante que o botão comece desativado até conectar
-        findMatchButton.interactable = false;
+        findMatchButton.interactable = true;
         findMatchButton.onClick.AddListener(OnFindMatchClicked);
 
-        // Se já estiver conectado ao iniciar a tela
-        if (PhotonNetwork.IsConnectedAndReady)
-        {
-            UpdateConnectionStatus("Conectado ao Master. Pronto para jogar!");
-            findMatchButton.interactable = true;
-        }
-        else
-        {
-            UpdateConnectionStatus("Conectando aos servidores...");
-        }
+        UpdateConnectionStatus("Conectando ao Servidor Local...");
 
-        InvokeRepeating(nameof(UpdatePlayerEconomyUI), 1f, 2f); // Atualiza os dados a cada 2 segundos
+        InvokeRepeating(nameof(UpdatePlayerEconomyUI), 1f, 2f);
     }
 
-    /// <summary>
-    /// Método chamado pelo botão "Encontrar Partida"
-    /// </summary>
     private void OnFindMatchClicked()
     {
-        UpdateConnectionStatus("Buscando oponentes...");
-        findMatchButton.interactable = false; // Impede múltiplos cliques
+        UpdateConnectionStatus("Entrando na fila de Matchmaking...");
+        findMatchButton.interactable = false;
 
-        // Solicita ao NetworkManager que entre numa sala aleatória
         if (NetworkManager.Instance != null)
         {
-            PhotonNetwork.JoinRandomRoom();
+            NetworkManager.Instance.JoinMatchmaking(2); // 2 players (1v1) by default
         }
     }
 
-    /// <summary>
-    /// Tenta buscar os dados do EconomyManager/AuthManager e atualiza a tela
-    /// </summary>
     private void UpdatePlayerEconomyUI()
     {
-        if (PlayFabAuthManager.Instance != null && PlayFabAuthManager.Instance.IsLoggedIn)
+        if (LocalAuthManager.Instance != null && LocalAuthManager.Instance.IsLoggedIn)
         {
-            // Atualiza o nome, pegando do PhotonNetwork (que foi setado pelo PlayFab)
-            playerNameText.text = string.IsNullOrEmpty(PhotonNetwork.NickName)
-                ? "Jogador Desconhecido"
-                : PhotonNetwork.NickName;
+            playerNameText.text = string.IsNullOrEmpty(LocalAuthManager.Instance.PlayerId)
+                ? "Aguardando Login..."
+                : "Jogador: " + LocalAuthManager.Instance.PlayerId.Substring(0, 8);
 
-            // Atualiza moedas do EconomyManager
             if (EconomyManager.Instance != null)
             {
-                softCurrencyText.text = EconomyManager.Instance.SoftCurrency.ToString();
-                premiumCurrencyText.text = EconomyManager.Instance.PremiumCurrency.ToString();
+                softCurrencyText.text = EconomyManager.Instance.SoftCurrency.ToString() + " SC";
+                premiumCurrencyText.text = EconomyManager.Instance.PremiumCurrency.ToString() + " PC";
             }
+
+            UpdateConnectionStatus("Conectado. Pronto para jogar!");
         }
     }
 
@@ -74,36 +56,5 @@ public class MatchmakingUI : MonoBehaviourPunCallbacks
     {
         if (connectionStatusText != null)
             connectionStatusText.text = status;
-
-        Debug.Log("[Matchmaking UI] " + status);
     }
-
-    #region PUN Callbacks para Feedback de UI
-
-    public override void OnConnectedToMaster()
-    {
-        UpdateConnectionStatus("Conectado ao Master. Pronto para jogar!");
-        findMatchButton.interactable = true;
-    }
-
-    public override void OnDisconnected(Photon.Realtime.DisconnectCause cause)
-    {
-        UpdateConnectionStatus("Desconectado: " + cause.ToString());
-        findMatchButton.interactable = false;
-    }
-
-    public override void OnJoinRandomFailed(short returnCode, string message)
-    {
-        UpdateConnectionStatus("Nenhuma sala disponível. Criando nova arena...");
-        // A lógica de criar a sala já está no NetworkManager, aqui damos apenas o feedback
-    }
-
-    public override void OnJoinedRoom()
-    {
-        UpdateConnectionStatus("Sala encontrada! Entrando na arena...");
-        // Desliga a UI principal ou carrega a cena de loading
-        this.gameObject.SetActive(false);
-    }
-
-    #endregion
 }

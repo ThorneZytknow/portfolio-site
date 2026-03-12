@@ -1,9 +1,9 @@
 using UnityEngine;
-using Photon.Pun;
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
 
-[RequireComponent(typeof(PhotonView))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class CombatSystem : MonoBehaviourPunCallbacks
+public class CombatSystem : MonoBehaviour
 {
     [Header("Atributos de Combate")]
     public float currentDamagePercentage = 0f; // Porcentagem de dano recebida (Quanto maior, mais longe voa)
@@ -34,9 +34,17 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         currentShieldHealth = maxShieldHealth;
     }
 
+    private void Start()
+    {
+        if (LocalServerClient.Instance != null)
+        {
+            LocalServerClient.Instance.OnAnyPacketReceived += HandleCombatPackets;
+        }
+    }
+
     private void Update()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
 
         // Não permite defesa se estiver estunado, em hitlag ou com escudo quebrado
         if (isHitstunned || isHitlagging || isShieldBroken)
@@ -72,7 +80,7 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         // Atualiza a vida do escudo na UI
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateShield(photonView.OwnerActorNr, currentShieldHealth, isShieldBroken);
+            HUDManager.Instance.UpdateShield(controller.actorNumber, currentShieldHealth, isShieldBroken);
         }
     }
 
@@ -84,7 +92,6 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         isShielding = true;
         // controller.enabled = false; // Opcional: Impedir movimento enquanto defende
         if (shieldVisual != null) shieldVisual.SetActive(true);
-        photonView.RPC("SyncShieldStateRPC", RpcTarget.Others, true);
     }
 
     /// <summary>
@@ -95,7 +102,6 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         isShielding = false;
         // if (!isShieldBroken && !isHitstunned) controller.enabled = true;
         if (shieldVisual != null) shieldVisual.SetActive(false);
-        photonView.RPC("SyncShieldStateRPC", RpcTarget.Others, false);
     }
 
     /// <summary>
@@ -120,7 +126,7 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         currentShieldHealth = maxShieldHealth * 0.5f; // Volta com meia vida
     }
 
-    [PunRPC]
+
     public void SyncShieldStateRPC(bool state)
     {
         isShielding = state;
@@ -130,8 +136,8 @@ public class CombatSystem : MonoBehaviourPunCallbacks
     /// <summary>
     /// Nova função de dano avançada chamada pelo AbilitySystem, incorporando Hitlag e Hitstun
     /// </summary>
-    [PunRPC]
-    public void TakeAdvancedDamageRPC(float damage, float baseKnockback, Vector2 hitDirection, int hitlagFrames, float hitstunDuration)
+
+    public void ReceiveDamageLocally(float damage, float baseKnockback, Vector2 hitDirection, int hitlagFrames, float hitstunDuration)
     {
         // Se o escudo estiver ativo, o dano vai para o escudo e não há knockback/stun (mas pode haver hitlag)
         if (isShielding && currentShieldHealth > 0)
@@ -153,7 +159,7 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         // Notifica o HUDManager se ele existir
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateDamage(photonView.OwnerActorNr, currentDamagePercentage);
+            HUDManager.Instance.UpdateDamage(controller.actorNumber, currentDamagePercentage);
         }
 
         // Aplica o Hitlag (Congelamento visual/físico para impacto) em todos os clientes
@@ -188,12 +194,24 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         rb.velocity = storedVelocity; // Opcional, o empurrão geralmente sobrescreve isso
 
         // Se eu sou o dono do personagem, eu sofro a física autoritativa de Knockback
-        if (photonView.IsMine)
+        if (controller.isLocalPlayer)
         {
             ApplyKnockback(baseKnockback, knockbackDir);
 
             // Inicia o Hitstun (tempo incapacitado)
             StartCoroutine(HitstunRoutine(stunDuration));
+        }
+    }
+
+    private void HandleCombatPackets(BasePacket packet)
+    {
+        if (packet.Type == PacketType.Combat_DealDamage)
+        {
+            var data = packet.GetPayload<CombatDealDamage>();
+            if (data.TargetActorNumber == controller.actorNumber)
+            {
+                ReceiveDamageLocally(data.DamageAmount, data.BaseKnockback, new Vector2(data.DirX, data.DirY), data.HitlagFrames, data.HitstunDuration);
+            }
         }
     }
 
@@ -244,7 +262,7 @@ public class CombatSystem : MonoBehaviourPunCallbacks
         currentDamagePercentage = 0f;
         if (HUDManager.Instance != null)
         {
-            HUDManager.Instance.UpdateDamage(photonView.OwnerActorNr, currentDamagePercentage);
+            HUDManager.Instance.UpdateDamage(controller.actorNumber, currentDamagePercentage);
         }
     }
 }

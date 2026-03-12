@@ -1,0 +1,7 @@
+{
+  "serverHost": "127.0.0.1",
+  "tcpPort": 7777,
+  "udpPort": 7778,
+  "autoConnect": true,
+  "debugLogs": true
+}

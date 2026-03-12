@@ -26,18 +26,18 @@ public class CharacterRoster : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent += UpdateUnlockedCharacters;
+        LocalAuthManager.OnLoginSuccessEvent += UpdateUnlockedCharacters;
     }
 
     private void OnDisable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent -= UpdateUnlockedCharacters;
+        LocalAuthManager.OnLoginSuccessEvent -= UpdateUnlockedCharacters;
     }
 
     private void Start()
     {
         // Caso o login já tenha ocorrido antes deste script iniciar
-        if (PlayFabAuthManager.Instance != null && PlayFabAuthManager.Instance.IsLoggedIn)
+        if (LocalAuthManager.Instance != null && LocalAuthManager.Instance.IsLoggedIn)
         {
             UpdateUnlockedCharacters();
         }

@@ -1,5 +1,8 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
 /// <summary>
@@ -7,7 +10,7 @@ using System.Collections;
 /// Cria um buraco negro que suga (puxa fisicamente) inimigos para o centro
 /// e após 2 segundos explode causando Knockback e dano massivos.
 /// </summary>
-public class AbismoDevoradorAbility : MonoBehaviourPun
+public class AbismoDevoradorAbility : MonoBehaviour
 {
     public float suctionRadius = 4f;
     public float suctionForce = 3f;
@@ -24,22 +27,16 @@ public class AbismoDevoradorAbility : MonoBehaviourPun
         explosionKnockback = kb;
         ownerId = id;
 
-        if (photonView.IsMine)
-        {
-            StartCoroutine(BlackHoleRoutine());
-        }
+        StartCoroutine(BlackHoleRoutine());
     }
 
     private void Update()
     {
-        // Se a máquina que invocou for dona, ela aplica a força de sucção física nos alvos locais
-        if (!photonView.IsMine) return;
-
         Collider2D[] targets = Physics2D.OverlapCircleAll(transform.position, suctionRadius, LayerMask.GetMask("Player"));
         foreach (var target in targets)
         {
-            PhotonView targetView = target.GetComponent<PhotonView>();
-            if (targetView != null && targetView.OwnerActorNr != ownerId)
+            PlayerController targetController = target.GetComponent<PlayerController>();
+            if (targetController != null && targetController.actorNumber != ownerId)
             {
                 Rigidbody2D targetRb = target.GetComponent<Rigidbody2D>();
                 if (targetRb != null)
@@ -62,22 +59,34 @@ public class AbismoDevoradorAbility : MonoBehaviourPun
 
         foreach (var enemy in hitEnemies)
         {
-            PhotonView enemyView = enemy.GetComponent<PhotonView>();
-            if (enemyView != null && enemyView.OwnerActorNr != ownerId)
+            CombatSystem enemyCombat = enemy.GetComponent<CombatSystem>();
+            if (enemyCombat != null)
             {
-                Vector2 hitDirection = (enemy.transform.position - transform.position).normalized;
-                hitDirection.y += 0.5f; // Joga pra cima
+                PlayerController targetController = enemyCombat.GetComponent<PlayerController>();
+                if (targetController != null && targetController.actorNumber != ownerId)
+                {
+                    Vector2 hitDirection = (enemy.transform.position - transform.position).normalized;
+                    hitDirection.y += 0.5f; // Joga pra cima
 
-                enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
-                    explosionDamage,
-                    explosionKnockback,
-                    hitDirection,
-                    8, // Hitlag alto
-                    0.5f); // Hitstun
+                    if (LocalServerClient.Instance != null)
+                    {
+                        var dmgPacket = new CombatDealDamage
+                        {
+                            TargetActorNumber = targetController.actorNumber,
+                            DamageAmount = explosionDamage,
+                            BaseKnockback = explosionKnockback,
+                            DirX = hitDirection.x,
+                            DirY = hitDirection.y,
+                            HitlagFrames = 8,
+                            HitstunDuration = 0.5f
+                        };
+                        LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
+                    }
+                }
             }
         }
 
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 
     private void OnDrawGizmosSelected()

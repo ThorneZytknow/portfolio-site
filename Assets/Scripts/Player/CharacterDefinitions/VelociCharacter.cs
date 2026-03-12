@@ -31,10 +31,10 @@ public class VelociCharacter : BaseCharacter
         }
     }
 
-    [PunRPC]
+
     public void TeleportDashRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Veloci] Ilusão de Passo! (Down-Special)");
 
         Vector3 spawnDashSlash = transform.position; // Posição atual de onde a ilusão ficará
@@ -44,27 +44,27 @@ public class VelociCharacter : BaseCharacter
         transform.position += new Vector3(dashDistance, 0, 0);
 
         // Instancia o rastro e executa dano (IlusaoPassoAbility cuida da Hitbox nas costas do alvo)
-        GameObject dashSlash = PhotonNetwork.Instantiate("IlusaoPassoSlashPrefab", spawnDashSlash, Quaternion.identity);
+        GameObject dashSlash = Instantiate(Resources.Load<GameObject>("IlusaoPassoSlashPrefab"), spawnDashSlash, Quaternion.identity);
         IlusaoPassoAbility logic = dashSlash.GetComponent<IlusaoPassoAbility>();
         if (logic != null)
         {
-            logic.Initialize(abilitySystem.downAbility, photonView.OwnerActorNr);
+            logic.Initialize(abilitySystem.downAbility, controller.actorNumber);
         }
     }
 
-    [PunRPC]
+
     public void CinematicSlashRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Veloci] Especial das Mil Lâminas!");
 
         // Lança o jogador num dash gigantesco. Se acertar o inimigo, começa a cinematic
         // Delegado para script CinematicSlashAbility anexado ao projétil de engage ou hitbox
-        GameObject cinematicTrigger = PhotonNetwork.Instantiate("MilCortesTrigger", transform.position, Quaternion.identity);
+        GameObject cinematicTrigger = Instantiate(Resources.Load<GameObject>("MilCortesTrigger"), transform.position, Quaternion.identity);
         CinematicSlashAbility logic = cinematicTrigger.GetComponent<CinematicSlashAbility>();
         if (logic != null)
         {
-            logic.Initialize(photonView.OwnerActorNr);
+            logic.Initialize(controller.actorNumber);
         }
     }
 }

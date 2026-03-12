@@ -35,40 +35,48 @@ public class TorrakCharacter : BaseCharacter
         }
     }
 
-    [PunRPC]
+
     public void GrappleThrowRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Torrak] Tentando Agarrão e Lançamento! (Up-Special)");
 
-        // Lógica de comando para pegar inimigo adjacente:
         Collider2D hit = Physics2D.OverlapCircle(transform.position, 1.5f, LayerMask.GetMask("Player"));
         if (hit != null && hit.gameObject != this.gameObject)
         {
-            // Lança o jogador para cima aplicando dano pesado
-            PhotonView enemyView = hit.GetComponent<PhotonView>();
-            if (enemyView != null)
+            PlayerController targetController = hit.GetComponent<PlayerController>();
+            if (targetController != null && LocalServerClient.Instance != null)
             {
-                // Multiplicador de gravidade no lançamento (Spike para Cima)
-                enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All, 28f, 30f, new Vector2(0, 1), 6, 1f);
+                var dmgPacket = new BrawlerShared.Packets.CombatDealDamage
+                {
+                    TargetActorNumber = targetController.actorNumber,
+                    DamageAmount = 28f,
+                    BaseKnockback = 30f,
+                    DirX = 0f,
+                    DirY = 1f,
+                    HitlagFrames = 6,
+                    HitstunDuration = 1f
+                };
+                LocalServerClient.Instance.SendPacket(BrawlerShared.Enums.PacketType.Combat_DealDamage, dmgPacket);
             }
         }
     }
 
-    [PunRPC]
+
     public void CorrentesCaosRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Torrak] Lançando Correntes do Caos!");
 
-        // Instancia duas correntes simultâneas (uma para cada lado)
-        // A lógica principal que fará os Raycasts pros dois lados fica em apenas 1 objeto mestre invisível
-        GameObject correntesController = PhotonNetwork.Instantiate("TorrakChainControllerPrefab", transform.position, Quaternion.identity);
-
-        CorrentesDoCaosAbility logic = correntesController.GetComponent<CorrentesDoCaosAbility>();
-        if (logic != null)
+        if (abilitySystem.specialAbility.vfxPrefabReference != null)
         {
-            logic.Initialize(photonView.OwnerActorNr);
+            GameObject correntesController = Instantiate(abilitySystem.specialAbility.vfxPrefabReference, transform.position, Quaternion.identity);
+
+            CorrentesDoCaosAbility logic = correntesController.GetComponent<CorrentesDoCaosAbility>();
+            if (logic != null)
+            {
+                logic.Initialize(controller.actorNumber);
+            }
         }
     }
 }

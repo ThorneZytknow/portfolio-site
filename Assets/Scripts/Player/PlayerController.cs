@@ -1,10 +1,14 @@
 using UnityEngine;
-using Photon.Pun;
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
 
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(PhotonView))]
-public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
+public class PlayerController : MonoBehaviour
 {
+    [Header("Identificação Rede Local")]
+    public bool isLocalPlayer = false;
+    public int actorNumber; // Substitui o OwnerActorNr do Photon
+
     [Header("Movimentação")]
     public float moveSpeed = 8f;
     public float jumpForce = 12f;
@@ -19,21 +23,26 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float moveInput;
     private bool facingRight = true;
 
-    // Variáveis para sincronização de posição (Smooth Syncing)
+    // Variáveis para sincronização de posição do Servidor Customizado
     private Vector2 networkPosition;
-    private Quaternion networkRotation;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        // Garante que a gravidade esteja ativada
         rb.gravityScale = 3f;
+    }
+
+    private void Start()
+    {
+        if (LocalServerClient.Instance != null)
+        {
+            LocalServerClient.Instance.OnAnyPacketReceived += HandleNetworkPackets;
+        }
     }
 
     private void Update()
     {
-        // Só permite o controle do jogador dono do objeto instanciado via Photon
-        if (photonView.IsMine)
+        if (isLocalPlayer)
         {
             ProcessInputs();
         }
@@ -45,64 +54,43 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void FixedUpdate()
     {
-        // A física só deve ser aplicada no dono local
-        if (!photonView.IsMine) return;
+        if (!isLocalPlayer) return;
 
         CheckGrounded();
         MovePlayer();
+
+        // Em vez de IPunObservable (Photon), envia Inputs/Posições via pacote UDP/TCP próprio
+        SendSyncPacket();
     }
 
-    /// <summary>
-    /// Captura entradas do jogador (teclado/controle)
-    /// </summary>
     private void ProcessInputs()
     {
         moveInput = Input.GetAxis("Horizontal");
 
-        // Controle de pulo
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
             Jump();
         }
 
-        // Inverter sprite de acordo com a direção
-        if (moveInput > 0 && !facingRight)
-        {
-            Flip();
-        }
-        else if (moveInput < 0 && facingRight)
-        {
-            Flip();
-        }
+        if (moveInput > 0 && !facingRight) Flip();
+        else if (moveInput < 0 && facingRight) Flip();
     }
 
-    /// <summary>
-    /// Aplica a velocidade horizontal
-    /// </summary>
     private void MovePlayer()
     {
         rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
     }
 
-    /// <summary>
-    /// Aplica a força de pulo
-    /// </summary>
     private void Jump()
     {
         rb.velocity = new Vector2(rb.velocity.x, jumpForce);
     }
 
-    /// <summary>
-    /// Verifica colisões no chão para permitir pulo
-    /// </summary>
     private void CheckGrounded()
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
     }
 
-    /// <summary>
-    /// Vira a orientação do objeto do jogador
-    /// </summary>
     private void Flip()
     {
         facingRight = !facingRight;
@@ -111,41 +99,41 @@ public class PlayerController : MonoBehaviourPunCallbacks, IPunObservable
         transform.localScale = scaler;
     }
 
-    /// <summary>
-    /// Movimento suave para clientes remotos (interpolação da posição enviada pela rede)
-    /// </summary>
     private void SmoothMovement()
     {
         transform.position = Vector3.Lerp(transform.position, networkPosition, Time.deltaTime * 10f);
-        transform.rotation = Quaternion.Lerp(transform.rotation, networkRotation, Time.deltaTime * 10f);
     }
 
-    #region IPunObservable implementation
-
-    /// <summary>
-    /// Envia e recebe a posição e rotação pela rede.
-    /// Chamado automaticamente pelo PhotonView configurado para observar este componente.
-    /// </summary>
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    private void SendSyncPacket()
     {
-        if (stream.IsWriting)
-        {
-            // O jogador local envia sua posição e rotação
-            stream.SendNext(transform.position);
-            stream.SendNext(transform.rotation);
-            stream.SendNext(rb.velocity); // Envio da velocidade para interpolar melhor se necessário
-        }
-        else
-        {
-            // Jogadores remotos recebem a atualização
-            networkPosition = (Vector3)stream.ReceiveNext();
-            networkRotation = (Quaternion)stream.ReceiveNext();
-            rb.velocity = (Vector2)stream.ReceiveNext(); // Aplica velocidade remotamente
+        if (LocalServerClient.Instance == null) return;
 
-            // Evita que a gravidade e o movimento afetem os clones remotos desativando simulações pesadas (opcional)
-            // Em configurações avançadas é possível usar simulação determinística, mas aqui usamos a clássica
-        }
+        var inputPacket = new GamePlayerInput
+        {
+            InputX = moveInput,
+            InputY = rb.velocity.y,
+            JumpPressed = Input.GetButton("Jump"),
+            AttackPressed = Input.GetButton("Fire1")
+        };
+
+        // UDP seria mais rápido, mas aqui demonstramos a lógica agnóstica via Socket customizado
+        LocalServerClient.Instance.SendPacket(PacketType.Game_PlayerInput, inputPacket);
     }
 
-    #endregion
+    private void HandleNetworkPackets(BasePacket packet)
+    {
+        // Intercepta GameState global do servidor e atualiza posições
+        if (packet.Type == PacketType.Game_StateSync)
+        {
+            var sync = packet.GetPayload<GameStateSync>();
+            if (sync.Players != null && sync.Players.TryGetValue(actorNumber, out var stateData))
+            {
+                if (!isLocalPlayer)
+                {
+                    networkPosition = new Vector2(stateData.PosX, stateData.PosY);
+                    rb.velocity = new Vector2(stateData.VelX, stateData.VelY);
+                }
+            }
+        }
+    }
 }

@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections.Generic;
-using Photon.Pun;
+
 
 public class HUDManager : MonoBehaviour
 {

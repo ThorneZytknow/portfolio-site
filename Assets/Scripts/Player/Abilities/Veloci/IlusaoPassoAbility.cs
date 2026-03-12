@@ -1,12 +1,15 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 using System.Collections;
 
 /// <summary>
 /// Habilidade Customizada do Veloci: Teleport Dash
 /// Dá um dash rápido que ignora colisão e ao finalizar invoca uma lâmina fantasma na direção oposta (atrás do inimigo ultrapassado).
 /// </summary>
-public class IlusaoPassoAbility : MonoBehaviourPun
+public class IlusaoPassoAbility : MonoBehaviour
 {
     private AbilityData sourceAbility;
     private int ownerActorNumber;
@@ -16,11 +19,7 @@ public class IlusaoPassoAbility : MonoBehaviourPun
     {
         sourceAbility = data;
         ownerActorNumber = ownerId;
-
-        if (photonView.IsMine)
-        {
-            StartCoroutine(PhantomSlashRoutine());
-        }
+        StartCoroutine(PhantomSlashRoutine());
     }
 
     private IEnumerator PhantomSlashRoutine()
@@ -29,26 +28,31 @@ public class IlusaoPassoAbility : MonoBehaviourPun
 
         Debug.Log("[Veloci] O rastro se materializa e ataca!");
 
-        // Detecção da colisão circular nas costas do alvo (onde a Ilusão ficou presa no ar)
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, sourceAbility.hitboxRange, LayerMask.GetMask("Player"));
 
         foreach (Collider2D enemy in hitEnemies)
         {
-            PhotonView enemyView = enemy.GetComponent<PhotonView>();
-            if (enemyView != null && enemyView.OwnerActorNr != ownerActorNumber)
+            PlayerController targetController = enemy.GetComponent<PlayerController>();
+            if (targetController != null && targetController.actorNumber != ownerActorNumber)
             {
-                // Joga o alvo para trás
                 Vector2 hitDirection = (transform.position - enemy.transform.position).normalized;
                 hitDirection.y += 0.5f;
 
-                enemyView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
-                    sourceAbility.damage,
-                    sourceAbility.baseKnockback,
-                    hitDirection,
-                    sourceAbility.hitlagFrames,
-                    sourceAbility.hitstunDuration);
+                if (LocalServerClient.Instance != null)
+                {
+                    var dmgPacket = new CombatDealDamage
+                    {
+                        TargetActorNumber = targetController.actorNumber,
+                        DamageAmount = sourceAbility.damage,
+                        BaseKnockback = sourceAbility.baseKnockback,
+                        DirX = hitDirection.x,
+                        DirY = hitDirection.y,
+                        HitlagFrames = sourceAbility.hitlagFrames,
+                        HitstunDuration = sourceAbility.hitstunDuration
+                    };
+                    LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
+                }
 
-                // Incrementa estatística
                 if (MatchResultsManager.Instance != null)
                 {
                     MatchResultsManager.Instance.AddDamage(sourceAbility.damage);
@@ -56,7 +60,6 @@ public class IlusaoPassoAbility : MonoBehaviourPun
             }
         }
 
-        // Fim da Ilusão
-        PhotonNetwork.Destroy(gameObject);
+        Destroy(gameObject);
     }
 }

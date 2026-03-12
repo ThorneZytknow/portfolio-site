@@ -1,16 +1,16 @@
 using UnityEngine;
-using Photon.Pun;
+
 
 /// <summary>
 /// Classe base abstrata para todos os personagens do jogo.
 /// Ela conecta as informações de CharacterData ao objeto do jogador
 /// e gerencia o registro inicial dos dados de mecânica.
 /// </summary>
-[RequireComponent(typeof(PhotonView))]
+
 [RequireComponent(typeof(PlayerController))]
 [RequireComponent(typeof(CombatSystem))]
 [RequireComponent(typeof(AbilitySystem))]
-public abstract class BaseCharacter : MonoBehaviourPunCallbacks
+public abstract class BaseCharacter : MonoBehaviour
 {
     [Header("Dados do Personagem")]
     public CharacterData characterData;

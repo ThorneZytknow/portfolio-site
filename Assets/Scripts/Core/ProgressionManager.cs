@@ -1,7 +1,6 @@
 using UnityEngine;
-using PlayFab;
-using PlayFab.ClientModels;
-using System.Collections.Generic;
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
 
 public class ProgressionManager : MonoBehaviour
 {
@@ -11,7 +10,6 @@ public class ProgressionManager : MonoBehaviour
     public int PlayerLevel { get; private set; } = 1;
     public int CurrentXP { get; private set; } = 0;
 
-    // Formula exemplo: XP_Necessária = Nível * 1000
     public int XpToNextLevel => PlayerLevel * 1000;
 
     private void Awake()
@@ -27,86 +25,50 @@ public class ProgressionManager : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent += LoadPlayerProgression;
+        LocalAuthManager.OnLoginSuccessEvent += LoadPlayerProgression;
     }
 
     private void OnDisable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent -= LoadPlayerProgression;
+        LocalAuthManager.OnLoginSuccessEvent -= LoadPlayerProgression;
     }
 
     private void Start()
     {
-        // Caso a cena seja recarregada e já estejamos logados
-        if (PlayFabAuthManager.Instance != null && PlayFabAuthManager.Instance.IsLoggedIn)
+        if (LocalAuthManager.Instance != null && LocalAuthManager.Instance.IsLoggedIn)
         {
             LoadPlayerProgression();
         }
+
+        if (LocalServerClient.Instance != null)
+        {
+            LocalServerClient.Instance.OnAnyPacketReceived += HandleProgressionPackets;
+        }
     }
 
-    /// <summary>
-    /// Busca do banco de dados (Player Statistics) as infos de XP e Nível
-    /// </summary>
     public void LoadPlayerProgression()
     {
-        if (PlayFabAuthManager.Instance == null || !PlayFabAuthManager.Instance.IsLoggedIn) return;
-
-        var request = new GetPlayerStatisticsRequest
-        {
-            StatisticNames = new List<string> { "PlayerLevel", "TotalXP" }
-        };
-
-        PlayFabClientAPI.GetPlayerStatistics(request, result =>
-        {
-            foreach (var stat in result.Statistics)
-            {
-                if (stat.StatisticName == "PlayerLevel")
-                    PlayerLevel = stat.Value;
-                else if (stat.StatisticName == "TotalXP")
-                    CurrentXP = stat.Value;
-            }
-            Debug.Log($"[ProgressionManager] Nível: {PlayerLevel} | XP Total: {CurrentXP}");
-        },
-        error => Debug.LogError("Erro ao carregar estatísticas: " + error.GenerateErrorReport()));
+        Debug.Log("[ProgressionManager] Seria solicitado ao Servidor Local o Nível e XP...");
+        // LocalServerClient.Instance.SendPacket(PacketType.Progression_GetStats, new {});
     }
 
-    /// <summary>
-    /// Concede XP com base na performance do jogador ao fim de uma partida
-    /// </summary>
+    private void HandleProgressionPackets(BasePacket packet)
+    {
+        // Se o servidor enviasse um Progression_StatsResponse, leríamos aqui.
+    }
+
     public void GrantMatchXP(int kills, int survivalTimeSeconds, int finalPlacement)
     {
-        Debug.Log("[ProgressionManager] Solicitando recompensa de XP pela partida...");
+        Debug.Log("[ProgressionManager] Solicitando recompensa de XP ao Servidor Local...");
+        // Exemplo: LocalServerClient.Instance.SendPacket(PacketType.Economy_GrantReward, ...);
 
-        // Chama o servidor do PlayFab (Cloud Script) para evitar manipulação client-side
-        var request = new ExecuteCloudScriptRequest
+        // Simulação para o HUD não quebrar:
+        CurrentXP += (kills * 10) + (survivalTimeSeconds / 2);
+        if (CurrentXP >= XpToNextLevel) PlayerLevel++;
+
+        if (BattlePassManager.Instance != null)
         {
-            FunctionName = "GrantMatchXP",
-            FunctionParameter = new {
-                kills = kills,
-                duration = survivalTimeSeconds,
-                placement = finalPlacement
-            },
-            GeneratePlayStreamEvent = true
-        };
-
-        PlayFabClientAPI.ExecuteCloudScript(request, result =>
-        {
-            // O CloudScript retorna os novos valores de XP
-            if (result.FunctionResult != null)
-            {
-                // Aqui o servidor dirá quanto XP foi ganho, e se subiu de nível
-                Debug.Log($"XP Concedido! Validado no CloudScript. Resultados: {result.FunctionResult.ToString()}");
-
-                // Recarrega as estatísticas locais para a UI (HUD ou Resultados) ser atualizada
-                LoadPlayerProgression();
-
-                // Se o BattlePass estiver ativo, repassa o XP da partida para lá
-                if (BattlePassManager.Instance != null)
-                {
-                    BattlePassManager.Instance.AddBattlePassXP(100); // Exemplo: Valor fixo ou retornado pelo script
-                }
-            }
-        },
-        error => Debug.LogError("[ProgressionManager] Erro no script de XP: " + error.GenerateErrorReport()));
+            BattlePassManager.Instance.AddBattlePassXP(100);
+        }
     }
 }

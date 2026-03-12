@@ -1,7 +1,6 @@
 using UnityEngine;
-using PlayFab;
-using PlayFab.ClientModels;
-using System.Collections.Generic;
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
 
 public class BattlePassManager : MonoBehaviour
 {
@@ -12,9 +11,7 @@ public class BattlePassManager : MonoBehaviour
     public int BattlePassXP { get; private set; } = 0;
     public bool HasPremiumPass { get; private set; } = false;
 
-    // Constante para a chave do item no inventário (PlayFab ID)
     private const string PREMIUM_PASS_ITEM_ID = "Item_BattlePass_Season1";
-    // Quantidade de XP necessária por nível do passe
     public int XpPerTier = 1000;
 
     private void Awake()
@@ -30,29 +27,30 @@ public class BattlePassManager : MonoBehaviour
 
     private void OnEnable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent += CheckPremiumPassStatus;
-        PlayFabAuthManager.OnLoginSuccessEvent += LoadBattlePassProgress;
+        LocalAuthManager.OnLoginSuccessEvent += CheckPremiumPassStatus;
+        LocalAuthManager.OnLoginSuccessEvent += LoadBattlePassProgress;
     }
 
     private void OnDisable()
     {
-        PlayFabAuthManager.OnLoginSuccessEvent -= CheckPremiumPassStatus;
-        PlayFabAuthManager.OnLoginSuccessEvent -= LoadBattlePassProgress;
+        LocalAuthManager.OnLoginSuccessEvent -= CheckPremiumPassStatus;
+        LocalAuthManager.OnLoginSuccessEvent -= LoadBattlePassProgress;
     }
 
     private void Start()
     {
-        // Ao iniciar, caso o evento já tenha disparado antes
-        if (PlayFabAuthManager.Instance != null && PlayFabAuthManager.Instance.IsLoggedIn)
+        if (LocalAuthManager.Instance != null && LocalAuthManager.Instance.IsLoggedIn)
         {
             CheckPremiumPassStatus();
             LoadBattlePassProgress();
         }
+
+        if (LocalServerClient.Instance != null)
+        {
+            LocalServerClient.Instance.OnAnyPacketReceived += HandleBattlePassPackets;
+        }
     }
 
-    /// <summary>
-    /// Verifica se o jogador comprou o item do passe de batalha premium consultando o inventário
-    /// </summary>
     public void CheckPremiumPassStatus()
     {
         if (EconomyManager.Instance != null && EconomyManager.Instance.PlayerInventory != null)
@@ -70,83 +68,35 @@ public class BattlePassManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Carrega as estatísticas do PlayFab para pegar o Nível (Tier) e XP atual do Passe
-    /// </summary>
     public void LoadBattlePassProgress()
     {
-        var request = new GetPlayerStatisticsRequest
-        {
-            StatisticNames = new List<string> { "BattlePassTier", "BattlePassXP" }
-        };
-
-        PlayFabClientAPI.GetPlayerStatistics(request, result =>
-        {
-            foreach (var stat in result.Statistics)
-            {
-                if (stat.StatisticName == "BattlePassTier")
-                    CurrentTier = stat.Value;
-                else if (stat.StatisticName == "BattlePassXP")
-                    BattlePassXP = stat.Value;
-            }
-            Debug.Log($"[BattlePassManager] Tier Atual: {CurrentTier} | XP no Passe: {BattlePassXP}");
-        },
-        error => Debug.LogError("[BattlePassManager] Erro ao carregar estatísticas do passe: " + error.GenerateErrorReport()));
+        Debug.Log("[LocalBattlePass] Solicitando progresso do passe ao Servidor...");
+        LocalServerClient.Instance.SendPacket(PacketType.BattlePass_GetTier, new { });
     }
 
-    /// <summary>
-    /// Adiciona XP ao Passe de Batalha. O cálculo de progressão real é feito via CloudScript para segurança,
-    /// evitando manipulação local que daria recompensas gratuitas sem jogar.
-    /// </summary>
+    private void HandleBattlePassPackets(BasePacket packet)
+    {
+        if (packet.Type == PacketType.BattlePass_TierResponse)
+        {
+            var res = packet.GetPayload<BattlePassTierResponse>();
+            CurrentTier = res.CurrentTier;
+            BattlePassXP = res.CurrentXP;
+            HasPremiumPass = res.IsPremium;
+
+            Debug.Log($"[LocalBattlePass] Tier Atual: {CurrentTier} | XP no Passe: {BattlePassXP}");
+        }
+    }
+
     public void AddBattlePassXP(int amount)
     {
-        Debug.Log($"[BattlePassManager] Solicitando adição de {amount} XP ao Passe via Nuvem...");
-
-        var request = new ExecuteCloudScriptRequest
-        {
-            FunctionName = "AdvanceBattlePassTier",
-            FunctionParameter = new {
-                xpEarned = amount,
-                hasPremium = HasPremiumPass
-            },
-            GeneratePlayStreamEvent = true
-        };
-
-        PlayFabClientAPI.ExecuteCloudScript(request, result =>
-        {
-            if (result.FunctionResult != null)
-            {
-                Debug.Log($"[BattlePassManager] Progresso atualizado pelo servidor: {result.FunctionResult.ToString()}");
-                // Atualiza a tela com o novo tier e XP
-                LoadBattlePassProgress();
-            }
-        },
-        error => Debug.LogError("[BattlePassManager] Erro no script de progressão do passe: " + error.GenerateErrorReport()));
+        Debug.Log($"[LocalBattlePass] Solicitando adição de {amount} XP ao Passe via Servidor C#...");
+        LocalServerClient.Instance.SendPacket(PacketType.BattlePass_AdvanceTier, new { XpEarned = amount });
     }
 
-    /// <summary>
-    /// Compra o passe de batalha premium chamando o CloudScript (ou EconomyManager).
-    /// </summary>
     public void BuyPremiumPass()
     {
-        if (HasPremiumPass) return; // Evita compra duplicada
-        Debug.Log("[BattlePassManager] Tentando comprar o passe premium...");
-
-        // Usando o CloudScript para debitar a moeda premium (Ex: PC) e adicionar o item do passe ao inventário
-        var request = new ExecuteCloudScriptRequest
-        {
-            FunctionName = "PurchaseBattlePass",
-            GeneratePlayStreamEvent = true
-        };
-
-        PlayFabClientAPI.ExecuteCloudScript(request, result =>
-        {
-            Debug.Log($"[BattlePassManager] Resposta da compra do passe: {result.FunctionResult.ToString()}");
-            // Atualiza o inventário para reconhecer o item
-            EconomyManager.Instance.GetUserInventory();
-            // Verifica o status do passe novamente
-            CheckPremiumPassStatus();
-        },
-        error => Debug.LogError("[BattlePassManager] Falha ao tentar comprar passe: " + error.GenerateErrorReport()));
+        if (HasPremiumPass) return;
+        Debug.Log("[LocalBattlePass] Tentando comprar o passe premium...");
+        // Exemplo: LocalServerClient.Instance.SendPacket(PacketType.Economy_PurchaseItem, new { ItemId = PREMIUM_PASS_ITEM_ID });
     }
 }

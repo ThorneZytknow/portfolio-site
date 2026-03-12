@@ -1,11 +1,14 @@
+using BrawlerShared.Enums;
+using BrawlerShared.Packets;
+
 using UnityEngine;
-using Photon.Pun;
+
 
 /// <summary>
 /// Projétil comum utilizado por Habilidades que lançam magias, flechas, pedras, etc.
 /// Ele carrega os dados da AbilityData para aplicar o dano quando colidir via OnTriggerEnter2D.
 /// </summary>
-public class AbilityProjectile : MonoBehaviourPun
+public class AbilityProjectile : MonoBehaviour
 {
     private AbilityData sourceAbility;
     private int ownerActorNumber;
@@ -28,43 +31,47 @@ public class AbilityProjectile : MonoBehaviourPun
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if (!photonView.IsMine) return; // Apenas quem lançou resolve a lógica do dano
-
         // Ignora a si mesmo ou aliados
-        PhotonView hitView = collision.GetComponent<PhotonView>();
-        if (hitView != null && hitView.OwnerActorNr != ownerActorNumber)
+        CombatSystem enemyCombat = collision.GetComponent<CombatSystem>();
+        if (enemyCombat != null)
         {
-            // Calcula direção (de onde bateu para onde o alvo vai voar)
+            PlayerController targetController = enemyCombat.GetComponent<PlayerController>();
+            if (targetController != null && targetController.actorNumber == ownerActorNumber)
+                return; // Fogo amigo não
+
             Vector2 hitDirection = (collision.transform.position - transform.position).normalized;
-            hitDirection.y += 0.3f; // Ligeira inclinação para cima
+            hitDirection.y += 0.3f;
 
-            // Dispara o RPC de dano no alvo
-            hitView.RPC("TakeAdvancedDamageRPC", RpcTarget.All,
-                sourceAbility.damage,
-                sourceAbility.baseKnockback,
-                hitDirection,
-                sourceAbility.hitlagFrames,
-                sourceAbility.hitstunDuration);
-
-            // Toca um efeito visual de colisão se existir
-            if (sourceAbility.vfxPrefabReference != null)
+            if (LocalServerClient.Instance != null && targetController != null)
             {
-                PhotonNetwork.Instantiate(sourceAbility.vfxPrefabReference.name, transform.position, Quaternion.identity);
+                var dmgPacket = new CombatDealDamage
+                {
+                    TargetActorNumber = targetController.actorNumber,
+                    DamageAmount = sourceAbility.damage,
+                    BaseKnockback = sourceAbility.baseKnockback,
+                    DirX = hitDirection.x,
+                    DirY = hitDirection.y,
+                    HitlagFrames = sourceAbility.hitlagFrames,
+                    HitstunDuration = sourceAbility.hitstunDuration
+                };
+                LocalServerClient.Instance.SendPacket(PacketType.Combat_DealDamage, dmgPacket);
             }
 
-            // Avisa o dono do ataque para contar estatística de dano no painel final
+            if (sourceAbility.vfxPrefabReference != null)
+            {
+                Instantiate(sourceAbility.vfxPrefabReference, transform.position, Quaternion.identity);
+            }
+
             if (MatchResultsManager.Instance != null)
             {
                 MatchResultsManager.Instance.AddDamage(sourceAbility.damage);
             }
 
-            // Destrói o projétil via Photon
-            PhotonNetwork.Destroy(gameObject);
+            Destroy(gameObject);
         }
         else if (collision.gameObject.layer == LayerMask.NameToLayer("Ground"))
         {
-            // Bateu no chão/parede, desaparece
-            PhotonNetwork.Destroy(gameObject);
+            Destroy(gameObject);
         }
     }
 }

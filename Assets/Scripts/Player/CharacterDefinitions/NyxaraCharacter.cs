@@ -32,49 +32,54 @@ public class NyxaraCharacter : BaseCharacter
         }
     }
 
-    [PunRPC]
+
     public void PortalInversoRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Nyxara] Lançando Portal Inverso (Up-Special)");
 
-        // Teleporta Nyxara levemente para cima e executa um meteor smash
-        transform.position += new Vector3(0, 4f, 0); // Exemplo simplificado de teleporte vertical
+        transform.position += new Vector3(0, 4f, 0);
 
-        // Em seguida instancia uma hitbox que desce rapidamente (Dropkick)
-        // Isso normalmente usaria uma animação ou o `MeleeHitboxRoutine` do AbilitySystem, mas como é custom:
-        GameObject portalAtk = PhotonNetwork.Instantiate("PortalDropPrefab", transform.position, Quaternion.identity);
-        // Inicializa com os dados do UpAbility
-    }
-
-    [PunRPC]
-    public void SombraEspelhadaRPC()
-    {
-        if (!photonView.IsMine) return;
-        Debug.Log("[Nyxara] Criando Sombra Espelhada");
-
-        GameObject sombra = PhotonNetwork.Instantiate("SombraNyxaraPrefab", transform.position, Quaternion.identity);
-        SombraEspelhadaAbility sombraLogic = sombra.GetComponent<SombraEspelhadaAbility>();
-        if (sombraLogic != null)
+        if (abilitySystem.upAbility.vfxPrefabReference != null)
         {
-            sombraLogic.Initialize(abilitySystem.downAbility, photonView.OwnerActorNr);
+            GameObject portalAtk = Instantiate(abilitySystem.upAbility.vfxPrefabReference, transform.position, Quaternion.identity);
         }
     }
 
-    [PunRPC]
+
+    public void SombraEspelhadaRPC()
+    {
+        if (!controller.isLocalPlayer) return;
+        Debug.Log("[Nyxara] Criando Sombra Espelhada");
+
+        if (abilitySystem.downAbility.vfxPrefabReference != null)
+        {
+            GameObject sombra = Instantiate(abilitySystem.downAbility.vfxPrefabReference, transform.position, Quaternion.identity);
+            SombraEspelhadaAbility sombraLogic = sombra.GetComponent<SombraEspelhadaAbility>();
+            if (sombraLogic != null)
+            {
+                sombraLogic.Initialize(abilitySystem.downAbility, controller.actorNumber);
+            }
+        }
+    }
+
+
     public void AbismoDevoradorRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Nyxara] Conjurando Abismo Devorador");
 
-        // Invoca o buraco negro a uma distância média
         Vector3 spawnPos = transform.position + new Vector3(transform.localScale.x * 3f, 0f, 0f);
-        GameObject abismo = PhotonNetwork.Instantiate("AbismoDevoradorPrefab", spawnPos, Quaternion.identity);
 
-        AbismoDevoradorAbility logic = abismo.GetComponent<AbismoDevoradorAbility>();
-        if (logic != null)
+        if (abilitySystem.specialAbility.vfxPrefabReference != null)
         {
-            logic.Initialize(abilitySystem.specialAbility.damage, abilitySystem.specialAbility.baseKnockback, photonView.OwnerActorNr);
+            GameObject abismo = Instantiate(abilitySystem.specialAbility.vfxPrefabReference, spawnPos, Quaternion.identity);
+
+            AbismoDevoradorAbility logic = abismo.GetComponent<AbismoDevoradorAbility>();
+            if (logic != null)
+            {
+                logic.Initialize(abilitySystem.specialAbility.damage, abilitySystem.specialAbility.baseKnockback, controller.actorNumber);
+            }
         }
     }
 }

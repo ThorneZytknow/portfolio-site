@@ -34,32 +34,32 @@ public class GaiaCharacter : BaseCharacter
         }
     }
 
-    [PunRPC]
+
     public void RootSnareRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Gaïa] Invocando Raízes Aprisionadoras! (Down-Special)");
 
         // Invoca as raízes ligeiramente à frente do personagem para setupar traps
         Vector3 spawnPos = transform.position + new Vector3(transform.localScale.x * 2f, -1f, 0f); // chão
-        GameObject raizes = PhotonNetwork.Instantiate("RaizesGaiaPrefab", spawnPos, Quaternion.identity);
+        GameObject raizes = Instantiate(Resources.Load<GameObject>("RaizesGaiaPrefab"), spawnPos, Quaternion.identity);
     }
 
-    [PunRPC]
+
     public void MeteorShowerRPC()
     {
-        if (!photonView.IsMine) return;
+        if (!controller.isLocalPlayer) return;
         Debug.Log("[Gaïa] Chamando a Ira da Natureza! (Special)");
 
         // Instancia o gestor da chuva de meteoros acima da arena
         Vector3 spawnPos = new Vector3(transform.position.x, transform.position.y + 10f, 0f);
-        GameObject shower = PhotonNetwork.Instantiate("GaiaMeteorShowerPrefab", spawnPos, Quaternion.identity);
+        GameObject shower = Instantiate(Resources.Load<GameObject>("GaiaMeteorShowerPrefab"), spawnPos, Quaternion.identity);
 
         WrathOfGaiaAbility logic = shower.GetComponent<WrathOfGaiaAbility>();
         if (logic != null)
         {
             // Pega o dano e knockback configurados no ScriptableObject
-            logic.Initialize(abilitySystem.specialAbility.damage, abilitySystem.specialAbility.baseKnockback, photonView.OwnerActorNr);
+            logic.Initialize(abilitySystem.specialAbility.damage, abilitySystem.specialAbility.baseKnockback, controller.actorNumber);
         }
     }
 }

@@ -23,23 +23,23 @@ public class SolarisCharacter : BaseCharacter
         }
     }
 
-    [PunRPC]
+
     public void JuizoSolarRPC()
     {
         Debug.Log("[Solaris] Iniciando RPC do Juízo Solar!");
 
-        if (photonView.IsMine)
+        if (controller.isLocalPlayer)
         {
             // O especial cai onde o mouse aponta ou em uma distância fixa em frente ao jogador
             Vector3 spawnPos = transform.position + new Vector3(transform.localScale.x * 5f, 0f, 0f); // 5 unidades a frente
 
             // Instancia o objeto controlador do especial
-            GameObject juizoObj = PhotonNetwork.Instantiate("JuizoSolarPrefab", spawnPos, Quaternion.identity);
+            GameObject juizoObj = Instantiate(Resources.Load<GameObject>("JuizoSolarPrefab"), spawnPos, Quaternion.identity);
 
             JuizoSolarAbility juizoLogic = juizoObj.GetComponent<JuizoSolarAbility>();
             if (juizoLogic != null)
             {
-                juizoLogic.Initialize(abilitySystem.specialAbility, spawnPos, photonView.OwnerActorNr);
+                juizoLogic.Initialize(abilitySystem.specialAbility, spawnPos, controller.actorNumber);
             }
         }
     }

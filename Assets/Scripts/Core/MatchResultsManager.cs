@@ -1,9 +1,9 @@
 using UnityEngine;
-using Photon.Pun;
+
 using TMPro;
 using System.Collections.Generic;
 
-public class MatchResultsManager : MonoBehaviourPunCallbacks
+public class MatchResultsManager : MonoBehaviour
 {
     public static MatchResultsManager Instance;
 
@@ -85,17 +85,12 @@ public class MatchResultsManager : MonoBehaviourPunCallbacks
     }
 
     /// <summary>
-    /// Desconecta da sala do Photon e volta para a cena inicial (Menu/Lobby)
+    /// Desconecta da sala e volta para a cena inicial (Menu/Lobby)
     /// </summary>
     private void ReturnToLobby()
     {
         Debug.Log("[MatchResults] Voltando para o Lobby...");
-        PhotonNetwork.LeaveRoom(); // Desconecta
-    }
-
-    public override void OnLeftRoom()
-    {
-        // Ao sair da sala de combate com sucesso, carrega a UI de Matchmaking (Scene)
+        // Exemplo: LocalServerClient.Instance.SendPacket(PacketType.Matchmaking_LeaveRoom, ...);
         UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
     }
 
